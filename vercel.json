@@ -1,33 +1,15 @@
 {
   "version": 2,
-  "functions": {
-    "api/index.ts": {
-      "runtime": "@vercel/node@latest"
+  "builds": [
+    {
+      "src": "api/index.ts",
+      "use": "@vercel/node@3.0.27"
     }
-  },
+  ],
   "rewrites": [
     {
       "source": "/(.*)",
       "destination": "/api/index.ts"
-    }
-  ],
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        },
-        {
-          "key": "Access-Control-Allow-Methods", 
-          "value": "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-        },
-        {
-          "key": "Access-Control-Allow-Headers",
-          "value": "X-Requested-With, Content-Type, Accept, Authorization, Origin"
-        }
-      ]
     }
   ]
 }
