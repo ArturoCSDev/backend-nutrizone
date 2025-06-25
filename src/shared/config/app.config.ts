@@ -1,3 +1,4 @@
+// src/shared/config/app.config.ts
 import { config } from './environment';
 
 export const appConfig = {
@@ -12,10 +13,20 @@ export const appConfig = {
   jsonLimit: '10mb',
   urlEncodedLimit: '10mb',
   
-  // CORS
+  // CORS - CORREGIDO
   corsOrigins: config.isDevelopment 
-    ? ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5173']
-    : ['https://frontend-nitruzone-dcwsec8jt-arturocsdevs-projects.vercel.app', 'https://frontend-nitruzone.vercel.app/'], // Agregar dominios de producción aquí
+    ? [
+        'http://localhost:3000', 
+        'http://localhost:3001', 
+        'http://localhost:5173',
+        'http://localhost:4173' // Vite preview
+      ]
+    : [
+        'https://frontend-nitruzone-dcwsec8jt-arturocsdevs-projects.vercel.app',
+        'https://frontend-nitruzone.vercel.app', // ❌ Quitada la barra final
+        'https://frontend-nutrizone.vercel.app', // ✅ Corregido el typo nitruzone -> nutrizone
+        'https://*.vercel.app' // ✅ Wildcard para deployments de preview
+      ],
   
   // Rate limiting
   rateLimiting: {
