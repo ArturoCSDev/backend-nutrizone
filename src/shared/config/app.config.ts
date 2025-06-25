@@ -15,7 +15,7 @@ export const appConfig = {
   // CORS
   corsOrigins: config.isDevelopment 
     ? ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5173']
-    : [], // Agregar dominios de producción aquí
+    : ['https://frontend-nitruzone-dcwsec8jt-arturocsdevs-projects.vercel.app'], // Agregar dominios de producción aquí
   
   // Rate limiting
   rateLimiting: {
