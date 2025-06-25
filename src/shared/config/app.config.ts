@@ -1,4 +1,4 @@
-// src/shared/config/app.config.ts
+// Backend: src/shared/config/app.config.ts
 import { config } from './environment';
 
 export const appConfig = {
@@ -13,19 +13,19 @@ export const appConfig = {
   jsonLimit: '10mb',
   urlEncodedLimit: '10mb',
   
-  // CORS - CORREGIDO
+  // CORS - CORREGIDO con la URL real del frontend
   corsOrigins: config.isDevelopment 
     ? [
         'http://localhost:3000', 
         'http://localhost:3001', 
         'http://localhost:5173',
-        'http://localhost:4173' // Vite preview
+        'http://localhost:4173'
       ]
     : [
-        'https://frontend-nitruzone-dcwsec8jt-arturocsdevs-projects.vercel.app',
-        'https://frontend-nitruzone.vercel.app', // ❌ Quitada la barra final
-        'https://frontend-nutrizone.vercel.app', // ✅ Corregido el typo nitruzone -> nutrizone
-        'https://*.vercel.app' // ✅ Wildcard para deployments de preview
+        'https://frontend-nitruzone-dcwsec8jt-arturocsdevs-projects.vercel.app', // ✅ Preview URL
+        'https://frontend-nitruzone.vercel.app', // ✅ URL real (con typo corregido)
+        'https://frontend-nutrizone.vercel.app', // ✅ Por si cambias la URL
+        'https://*.vercel.app' // ✅ Wildcard para cualquier deploy
       ],
   
   // Rate limiting
@@ -39,6 +39,6 @@ export const appConfig = {
   security: {
     helmet: true,
     cors: true,
-    rateLimit: !config.isDevelopment // Solo en producción
+    rateLimit: !config.isDevelopment
   }
 };
