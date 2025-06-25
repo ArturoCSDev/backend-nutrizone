@@ -1,11 +1,10 @@
-// src/app.ts
+// Backend: src/app.ts - Versión con DEBUG intensivo
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 
 // Middleware compartido
-import { corsMiddleware } from './shared/infrastructure/middleware/cors.middleware';
 import { rateLimitMiddleware } from './shared/infrastructure/middleware/rate-limit.middleware';
 import { errorHandlerMiddleware } from './shared/infrastructure/middleware/error-handler.middleware';
 
@@ -19,24 +18,54 @@ import { logger } from './shared/infrastructure/utils/logger.util';
 const app = express();
 
 // =============================================
-// SECURITY MIDDLEWARE
+// CORS ULTRA PERMISIVO PARA DEBUG
+// =============================================
+
+// ✅ CORS más agresivo para debugging
+const corsOptions = {
+  origin: true, // ✅ Permite CUALQUIER origin temporalmente
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
+  allowedHeaders: ['*'], // ✅ Permite CUALQUIER header
+  exposedHeaders: ['Authorization'],
+  maxAge: 86400,
+  preflightContinue: false,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
+
+// ✅ Manejo manual y explícito de OPTIONS
+app.use('*', (req, res, next) => {
+  console.log(`📋 ${req.method} ${req.originalUrl} from ${req.get('Origin')}`);
+  
+  if (req.method === 'OPTIONS') {
+    console.log('🔄 Handling OPTIONS preflight request');
+    res.header('Access-Control-Allow-Origin', req.get('Origin') || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH');
+    res.header('Access-Control-Allow-Headers', 'Origin,X-Requested-With,Content-Type,Accept,Authorization,Cache-Control');
+    res.header('Access-Control-Max-Age', '1728000');
+    return res.status(200).end();
+  }
+  next();
+});
+
+// =============================================
+// SECURITY MIDDLEWARE (RELAJADO)
 // =============================================
 
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
-  contentSecurityPolicy: false // Deshabilitar CSP que puede interferir con CORS
+  contentSecurityPolicy: false,
+  crossOriginOpenerPolicy: false,
+  crossOriginEmbedderPolicy: false
 }));
 
-// ✅ CORS debe ir ANTES que cualquier otra cosa
-app.use(corsMiddleware);
-
-// ✅ Manejo explícito de preflight OPTIONS
-app.options('*', corsMiddleware);
-
-// Rate limiting (solo en producción)
-if (appConfig.security.rateLimit) {
-  app.use(rateLimitMiddleware);
-}
+// Rate limiting DESHABILITADO para debug
+// if (appConfig.security.rateLimit) {
+//   app.use(rateLimitMiddleware);
+// }
 
 // =============================================
 // REQUEST PARSING
@@ -53,30 +82,25 @@ app.use(express.urlencoded({
 }));
 
 // =============================================
-// LOGGING
+// LOGGING INTENSIVO
 // =============================================
 
-// Morgan logging con diferentes formatos según ambiente
-const morganFormat = appConfig.environment === 'production' 
-  ? 'combined' 
-  : 'dev';
+app.use((req, res, next) => {
+  console.log(`🔍 ${req.method} ${req.originalUrl}`);
+  console.log('Headers:', req.headers);
+  console.log('Origin:', req.get('Origin'));
+  console.log('User-Agent:', req.get('User-Agent'));
+  next();
+});
 
-app.use(morgan(morganFormat, {
-  stream: { 
-    write: (message: string) => logger.info(message.trim()) 
-  },
-  skip: (req) => {
-    // Skip logging para health checks y OPTIONS en producción
-    return appConfig.environment === 'production' && 
-           (req.url === '/api/v1/health' || req.method === 'OPTIONS');
-  }
-}));
+app.use(morgan('combined'));
 
 // =============================================
-// HEALTH CHECK
+// HEALTH CHECK CON CORS INFO
 // =============================================
 
 app.get('/health', (req, res) => {
+  console.log('🏥 Health check from:', req.get('Origin'));
   res.status(200).json({
     status: 'OK',
     message: 'Nutrition API is healthy',
@@ -86,8 +110,22 @@ app.get('/health', (req, res) => {
     uptime: process.uptime(),
     cors: {
       origins: appConfig.corsOrigins,
+      requestOrigin: req.get('Origin'),
       development: appConfig.environment === 'development'
-    }
+    },
+    headers: req.headers
+  });
+});
+
+// ✅ Endpoint específico para test CORS
+app.all('/cors-test', (req, res) => {
+  console.log('🧪 CORS Test endpoint hit');
+  res.status(200).json({
+    message: 'CORS is working!',
+    method: req.method,
+    origin: req.get('Origin'),
+    headers: req.headers,
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -96,7 +134,8 @@ app.get('/', (req, res) => {
   res.status(200).json({
     message: '🥤 Welcome to Nutrition API',
     version: '1.0.0',
-    docs: '/api/v1/health',
+    docs: '/health',
+    corsTest: '/cors-test',
     timestamp: new Date().toISOString()
   });
 });
@@ -111,25 +150,20 @@ app.use(appConfig.apiPrefix, routes);
 // ERROR HANDLING
 // =============================================
 
-// 404 handler para rutas no encontradas
+// 404 handler
 app.use('*', (req, res) => {
-  // No loggear OPTIONS requests
-  if (req.method !== 'OPTIONS') {
-    logger.warn(`404 - Route not found: ${req.method} ${req.originalUrl}`, {
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-      origin: req.get('Origin')
-    });
-  }
-
+  console.log(`❌ 404 - Route not found: ${req.method} ${req.originalUrl}`);
+  console.log('Available routes: /, /health, /cors-test, /api/v1/*');
+  
   res.status(404).json({
     status: 'error',
     message: `Route ${req.method} ${req.originalUrl} not found`,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    availableRoutes: ['/', '/health', '/cors-test', '/api/v1/*']
   });
 });
 
-// Error handling middleware (debe ser el último)
+// Error handling middleware
 app.use(errorHandlerMiddleware);
 
 export default app;
