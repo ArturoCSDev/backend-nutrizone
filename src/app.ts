@@ -1,11 +1,11 @@
-// Backend: src/app.ts - Versión con DEBUG intensivo
+// src/app.ts - SIN app.listen() para Vercel
+import 'reflect-metadata';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 
 // Middleware compartido
-import { rateLimitMiddleware } from './shared/infrastructure/middleware/rate-limit.middleware';
 import { errorHandlerMiddleware } from './shared/infrastructure/middleware/error-handler.middleware';
 
 // Rutas
@@ -21,7 +21,6 @@ const app = express();
 // CORS ULTRA PERMISIVO PARA DEBUG
 // =============================================
 
-// ✅ CORS más agresivo para debugging
 const corsOptions = {
   origin: true, // ✅ Permite CUALQUIER origin temporalmente
   credentials: true,
@@ -35,12 +34,10 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// ✅ Manejo manual y explícito de OPTIONS
+// ✅ Manejo manual de OPTIONS
 app.use('*', (req, res, next) => {
-  console.log(`📋 ${req.method} ${req.originalUrl} from ${req.get('Origin')}`);
-  
   if (req.method === 'OPTIONS') {
-    console.log('🔄 Handling OPTIONS preflight request');
+    console.log('🔄 OPTIONS handled in Express');
     res.header('Access-Control-Allow-Origin', req.get('Origin') || '*');
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH');
@@ -52,7 +49,7 @@ app.use('*', (req, res, next) => {
 });
 
 // =============================================
-// SECURITY MIDDLEWARE (RELAJADO)
+// SECURITY MIDDLEWARE
 // =============================================
 
 app.use(helmet({
@@ -61,11 +58,6 @@ app.use(helmet({
   crossOriginOpenerPolicy: false,
   crossOriginEmbedderPolicy: false
 }));
-
-// Rate limiting DESHABILITADO para debug
-// if (appConfig.security.rateLimit) {
-//   app.use(rateLimitMiddleware);
-// }
 
 // =============================================
 // REQUEST PARSING
@@ -82,49 +74,39 @@ app.use(express.urlencoded({
 }));
 
 // =============================================
-// LOGGING INTENSIVO
+// LOGGING
 // =============================================
 
 app.use((req, res, next) => {
-  console.log(`🔍 ${req.method} ${req.originalUrl}`);
-  console.log('Headers:', req.headers);
-  console.log('Origin:', req.get('Origin'));
-  console.log('User-Agent:', req.get('User-Agent'));
+  console.log(`🔍 ${req.method} ${req.originalUrl} from ${req.get('Origin')}`);
   next();
 });
 
-app.use(morgan('combined'));
+// Solo logging básico en producción
+if (process.env.NODE_ENV !== 'production') {
+  app.use(morgan('dev'));
+}
 
 // =============================================
-// HEALTH CHECK CON CORS INFO
+// HEALTH CHECK
 // =============================================
 
 app.get('/health', (req, res) => {
-  console.log('🏥 Health check from:', req.get('Origin'));
   res.status(200).json({
     status: 'OK',
     message: 'Nutrition API is healthy',
     timestamp: new Date().toISOString(),
-    environment: appConfig.environment,
-    version: process.env.npm_package_version || '1.0.0',
-    uptime: process.uptime(),
-    cors: {
-      origins: appConfig.corsOrigins,
-      requestOrigin: req.get('Origin'),
-      development: appConfig.environment === 'development'
-    },
-    headers: req.headers
+    environment: process.env.NODE_ENV || 'development',
+    version: '1.0.0'
   });
 });
 
-// ✅ Endpoint específico para test CORS
-app.all('/cors-test', (req, res) => {
-  console.log('🧪 CORS Test endpoint hit');
+app.get('/cors-test', (req, res) => {
+  console.log('🧪 CORS Test endpoint hit from:', req.get('Origin'));
   res.status(200).json({
     message: 'CORS is working!',
     method: req.method,
     origin: req.get('Origin'),
-    headers: req.headers,
     timestamp: new Date().toISOString()
   });
 });
@@ -150,20 +132,16 @@ app.use(appConfig.apiPrefix, routes);
 // ERROR HANDLING
 // =============================================
 
-// 404 handler
 app.use('*', (req, res) => {
   console.log(`❌ 404 - Route not found: ${req.method} ${req.originalUrl}`);
-  console.log('Available routes: /, /health, /cors-test, /api/v1/*');
   
   res.status(404).json({
     status: 'error',
     message: `Route ${req.method} ${req.originalUrl} not found`,
-    timestamp: new Date().toISOString(),
-    availableRoutes: ['/', '/health', '/cors-test', '/api/v1/*']
+    timestamp: new Date().toISOString()
   });
 });
 
-// Error handling middleware
 app.use(errorHandlerMiddleware);
 
 export default app;

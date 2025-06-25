@@ -22,10 +22,10 @@ export const appConfig = {
         'http://localhost:4173'
       ]
     : [
-        'https://frontend-nitruzone-dcwsec8jt-arturocsdevs-projects.vercel.app', // ✅ Preview URL
-        'https://frontend-nitruzone.vercel.app', // ✅ URL real (con typo corregido)
-        'https://frontend-nutrizone.vercel.app', // ✅ Por si cambias la URL
-        'https://*.vercel.app' // ✅ Wildcard para cualquier deploy
+      'https://frontend-nutrizone.vercel.app',
+      'https://frontend-nitruzone.vercel.app',
+      'https://frontend-nitruzone-dcwsec8jt-arturocsdevs-projects.vercel.app',
+      'https://*.vercel.app'
       ],
   
   // Rate limiting
