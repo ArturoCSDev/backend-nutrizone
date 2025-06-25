@@ -1,18 +1,10 @@
-// index.ts - EN LA RAÍZ del proyecto (no en /api)
-import app from './src/app';
+// index.ts - EN LA RAÍZ del proyecto
+import app from './src/app-simple'; // ✅ Usar app sin Prisma
 
 export default async function handler(req: any, res: any) {
   // ✅ CORS headers ANTES de Express
   const origin = req.headers.origin;
-  const allowedOrigins = [
-    'https://frontend-nitruzone.vercel.app',
-    'https://frontend-nutrizone.vercel.app', 
-    'https://frontend-nitruzone-dcwsec8jt-arturocsdevs-projects.vercel.app',
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'http://localhost:4173'
-  ];
-
+  
   console.log(`🚀 VERCEL HANDLER - ${req.method} ${req.url} from ${origin}`);
 
   // ✅ Configurar CORS headers agresivamente
