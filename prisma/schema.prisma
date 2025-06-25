@@ -1,0 +1,520 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum RolUsuario {
+  ADMINISTRADOR
+  CLIENTE
+}
+
+enum TipoProducto {
+  BATIDO
+  REFRESCO
+  WAFFLE
+}
+
+enum ObjetivoNutricional {
+  PERDIDA_PESO
+  GANANCIA_MUSCULAR
+  MANTENIMIENTO
+  DEFINICION
+  VOLUMEN
+  RECUPERACION
+}
+
+enum NivelActividad {
+  SEDENTARIO
+  LIGERO
+  MODERADO
+  INTENSO
+  MUY_INTENSO
+}
+
+enum EstadoPlan {
+  ACTIVO
+  COMPLETADO
+  PAUSADO
+  CANCELADO
+}
+
+enum EstadoConversacion {
+  ACTIVA
+  COMPLETADA
+  ABANDONADA
+}
+
+enum TipoMensaje {
+  TEXTO
+  RECOMENDACION
+  PLAN
+}
+
+enum Prioridad {
+  ALTA
+  MEDIA
+  BAJA
+}
+
+enum RespuestaUsuario {
+  ACEPTADA
+  RECHAZADA
+  MODIFICADA
+  PENDIENTE
+}
+
+enum MomentoDelDia {
+  MANANA
+  PRE_ENTRENAMIENTO
+  POST_ENTRENAMIENTO
+  TARDE
+  NOCHE
+  ANTES_DORMIR
+}
+
+enum DiaSemana {
+  LUNES
+  MARTES
+  MIERCOLES
+  JUEVES
+  VIERNES
+  SABADO
+  DOMINGO
+}
+
+// ================================
+// USUARIOS Y AUTENTICACIÓN
+// ================================
+
+model Usuario {
+  id              String     @id @default(cuid())
+  email           String     @unique @db.VarChar(55)
+  dni             String     @unique @db.VarChar(20)
+  password        String     @db.VarChar(255)
+  nombre          String     @db.VarChar(25)
+  apellidoPaterno String     @db.VarChar(25)
+  apellidoMaterno String     @db.VarChar(25)
+  rol             RolUsuario
+  active          Boolean    @default(true)
+
+  // Timestamps
+  fechaCreacion      DateTime @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime @updatedAt @map("fecha_actualizacion")
+
+  // Relaciones basadas en rol
+  cliente       Cliente?
+  administrador Administrador?
+
+  @@map("usuarios")
+}
+
+model Cliente {
+  id        String @id @default(cuid())
+  usuarioId String @unique @map("usuario_id")
+
+  // Información personal
+  edad            Int?
+  peso            Decimal?        @db.Decimal(5, 2)
+  altura          Decimal?        @db.Decimal(5, 2)
+  nivelActividad  NivelActividad? @map("nivel_actividad")
+  telefono        String?
+  fechaNacimiento DateTime?       @map("fecha_nacimiento") @db.Date
+  genero          String?
+
+  // Información lipídica para planes
+  grasaCorporal    Decimal? @map("grasa_corporal") @db.Decimal(5, 2)
+  masaMuscular     Decimal? @map("masa_muscular") @db.Decimal(5, 2)
+  metabolismoBasal Int?     @map("metabolismo_basal")
+
+  // Timestamps
+  fechaCreacion      DateTime @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime @updatedAt @map("fecha_actualizacion")
+
+  // Relaciones
+  cliente             Usuario                 @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  preferencias        PreferenciaCliente?
+  planesNutricionales PlanNutricional[]
+  conversaciones      ConversacionChat[]
+  controlesConsultas  ControlConsultaDiaria[]
+  controlesFisicos    ControlFisico[]
+  consumosProductos   ConsumoProducto[]
+
+  @@map("clientes")
+}
+
+model Administrador {
+  id        String @id @default(cuid())
+  usuarioId String @unique @map("usuario_id")
+
+  // Información específica de admin
+  departamento String?
+  nivelAcceso  Int       @default(1) @map("nivel_acceso")
+  ultimoAcceso DateTime? @map("ultimo_acceso")
+
+  // Timestamps
+  fechaCreacion      DateTime @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime @updatedAt @map("fecha_actualizacion")
+
+  // Relaciones
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@map("administradores")
+}
+
+model PreferenciaCliente {
+  id        String @id @default(cuid())
+  clienteId String @unique @map("cliente_id")
+
+  // Preferencias alimentarias
+  productosFavoritos     String[]              @map("productos_favoritos") // Array de IDs de productos
+  preferenciasDieteticas String[]              @map("preferencias_dieteticas")
+  alergenos              String[]
+  objetivosFitness       ObjetivoNutricional[] @map("objetivos_fitness")
+
+  // Horarios de entrenamiento
+  diasEntrenamiento     DiaSemana[] @map("dias_entrenamiento")
+  horariosEntrenamiento String[]    @map("horarios_entrenamiento") // Formato "HH:mm"
+
+  // Horarios personales
+  horaDespertar DateTime? @map("hora_despertar") @db.Time
+  horaDormir    DateTime? @map("hora_dormir") @db.Time
+
+  // Timestamps
+  fechaCreacion      DateTime @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime @updatedAt @map("fecha_actualizacion")
+
+  // Relaciones
+  cliente Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  @@map("preferencias_clientes")
+}
+
+// ================================
+// PRODUCTOS
+// ================================
+
+model Categoria {
+  id           String       @id @default(cuid())
+  nombre       String       @unique
+  descripcion  String?
+  tipoProducto TipoProducto @map("tipo_producto")
+
+  // Timestamps
+  fechaCreacion      DateTime @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime @updatedAt @map("fecha_actualizacion")
+
+  // Relaciones
+  productos Producto[]
+
+  @@map("categorias")
+}
+
+model Sabor {
+  id          String  @id @default(cuid())
+  nombre      String  @unique
+  descripcion String?
+
+  // Timestamps
+  fechaCreacion      DateTime @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime @updatedAt @map("fecha_actualizacion")
+
+  // Relaciones
+  productos Producto[]
+
+  @@map("sabores")
+}
+
+model Tamano {
+  id       String @id @default(cuid())
+  nombre   String @unique
+  volumen  Int // en ml
+  proteina Int // en gramos
+
+  // Timestamps
+  fechaCreacion      DateTime @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime @updatedAt @map("fecha_actualizacion")
+
+  // Relaciones
+  productos                    Producto[]
+  recomendacionesNutricionales RecomendacionNutricional[]
+
+  @@map("tamanos")
+}
+
+model Producto {
+  id          String  @id @default(cuid())
+  nombre      String
+  descripcion String?
+  precio      Decimal @db.Decimal(8, 2)
+
+  // Información nutricional
+  proteina      Int? // en gramos
+  calorias      Int? // en kcal
+  volumen       Int? // en ml
+  carbohidratos Int? // en gramos
+  grasas        Int? // en gramos
+  fibra         Int? // en gramos
+  azucar        Int? // en gramos
+
+  // Relaciones FK
+  categoriaId String? @map("categoria_id")
+  saborId     String? @map("sabor_id")
+  tamanoId    String? @map("tamano_id")
+
+  // Información adicional
+  urlImagen    String?  @map("url_imagen")
+  ingredientes String[]
+  etiquetas    String[]
+
+  // Momentos recomendados
+  momentosRecomendados MomentoDelDia[] @map("momentos_recomendados")
+
+  // Timestamps
+  fechaCreacion      DateTime @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime @updatedAt @map("fecha_actualizacion")
+
+  // Relaciones
+  categoria       Categoria?                 @relation(fields: [categoriaId], references: [id])
+  sabor           Sabor?                     @relation(fields: [saborId], references: [id])
+  tamano          Tamano?                    @relation(fields: [tamanoId], references: [id])
+  recomendaciones RecomendacionNutricional[]
+  consumos        ConsumoProducto[]
+
+  @@map("productos")
+}
+
+// ================================
+// PLANES NUTRICIONALES
+// ================================
+
+model PlanNutricional {
+  id        String @id @default(cuid())
+  clienteId String @map("cliente_id")
+
+  // Información del plan
+  nombre      String
+  descripcion String?
+  objetivo    ObjetivoNutricional
+  estado      EstadoPlan          @default(ACTIVO)
+
+  // Fechas
+  fechaInicio DateTime  @map("fecha_inicio") @db.Date
+  fechaFin    DateTime? @map("fecha_fin") @db.Date
+  duracion    Int? // en días
+
+  // Metas nutricionales
+  caloriasObjetivo      Int? @map("calorias_objetivo")
+  proteinaObjetivo      Int? @map("proteina_objetivo")
+  carbohidratosObjetivo Int? @map("carbohidratos_objetivo")
+  grasasObjetivo        Int? @map("grasas_objetivo")
+
+  // Información lipídica base (snapshot al crear el plan)
+  pesoInicial     Decimal? @map("peso_inicial") @db.Decimal(5, 2)
+  grasaInicial    Decimal? @map("grasa_inicial") @db.Decimal(5, 2)
+  muscularInicial Decimal? @map("muscular_inicial") @db.Decimal(5, 2)
+
+  // Timestamps
+  fechaCreacion      DateTime @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime @updatedAt @map("fecha_actualizacion")
+
+  // Relaciones
+  cliente          Cliente            @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  controlesFisicos ControlFisico[]
+  conversaciones   ConversacionChat[]
+  consumos         ConsumoProducto[]
+
+  @@map("planes_nutricionales")
+}
+
+// ================================
+// CHAT Y CONSULTAS
+// ================================
+
+model ControlConsultaDiaria {
+  id        String   @id @default(cuid())
+  clienteId String   @map("cliente_id")
+  fecha     DateTime @db.Date
+
+  // Control de límites
+  consultasRealizadas Int @default(0) @map("consultas_realizadas")
+  limiteConsultas     Int @default(3) @map("limite_consultas")
+
+  // Timestamps
+  fechaCreacion      DateTime @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime @updatedAt @map("fecha_actualizacion")
+
+  // Relaciones
+  cliente Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  @@unique([clienteId, fecha])
+  @@map("control_consultas_diarias")
+}
+
+model ConversacionChat {
+  id        String  @id @default(cuid())
+  clienteId String  @map("cliente_id")
+  planId    String? @map("plan_id") // Opcional: puede estar relacionada a un plan específico
+
+  // Información de la conversación
+  objetivo String? // objetivo específico de esta consulta
+  contexto Json? // contexto adicional en JSON
+  estado   EstadoConversacion @default(ACTIVA)
+
+  // Timestamps
+  fechaInicio DateTime  @default(now()) @map("fecha_inicio")
+  fechaFin    DateTime? @map("fecha_fin")
+
+  // Relaciones
+  cliente  Cliente          @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  plan     PlanNutricional? @relation(fields: [planId], references: [id])
+  mensajes MensajeChat[]
+
+  @@map("conversaciones_chat")
+}
+
+model MensajeChat {
+  id             String @id @default(cuid())
+  conversacionId String @map("conversacion_id")
+
+  // Contenido del mensaje
+  rol       String // 'usuario' o 'asistente'
+  contenido String      @db.Text
+  metadatos Json? // metadatos adicionales en JSON
+  tipo      TipoMensaje @default(TEXTO)
+
+  // Timestamps
+  timestamp DateTime @default(now())
+
+  // Relaciones
+  conversacion    ConversacionChat           @relation(fields: [conversacionId], references: [id], onDelete: Cascade)
+  recomendaciones RecomendacionNutricional[]
+
+  @@map("mensajes_chat")
+}
+
+model RecomendacionNutricional {
+  id         String  @id @default(cuid())
+  mensajeId  String  @map("mensaje_id")
+  productoId String  @map("producto_id")
+  tamanoId   String? @map("tamano_id") // Tamaño específico recomendado
+
+  // Información de la recomendación (para el mockup)
+  tituloRecomendacion String?   @map("titulo_recomendacion") // "🎯 RECOMENDACIÓN INMEDIATA"
+  iconoProducto       String?   @map("icono_producto") // "🥤"
+  timingRecomendado   String    @map("timing_recomendado") // 'inmediato', 'pre_entrenamiento'
+  horarioEspecifico   DateTime? @map("horario_especifico") @db.Time
+  timingAdicional     String?   @map("timing_adicional") // "MAÑANA: 30 min antes del desayuno"
+
+  // Detalles
+  prioridad    Prioridad
+  razonamiento String    @db.Text // explicación científica
+  dosis        String? // cantidad recomendada
+  frecuencia   String? // frecuencia de consumo
+
+  // Estado de la recomendación
+  respuestaUsuario RespuestaUsuario @default(PENDIENTE) @map("respuesta_usuario")
+  timingModificado String?          @map("timing_modificado")
+
+  // Timestamps
+  fechaCreacion  DateTime  @default(now()) @map("fecha_creacion")
+  fechaRespuesta DateTime? @map("fecha_respuesta")
+
+  // Relaciones
+  mensaje  MensajeChat       @relation(fields: [mensajeId], references: [id], onDelete: Cascade)
+  producto Producto          @relation(fields: [productoId], references: [id])
+  tamano   Tamano?           @relation(fields: [tamanoId], references: [id])
+  consumos ConsumoProducto[]
+
+  @@map("recomendaciones_nutricionales")
+}
+
+// ================================
+// SEGUIMIENTO FÍSICO
+// ================================
+
+model ControlFisico {
+  id        String  @id @default(cuid())
+  clienteId String  @map("cliente_id")
+  planId    String? @map("plan_id") // Relacionado a un plan específico
+
+  // Fecha del control
+  fechaControl DateTime @map("fecha_control") @db.Date
+
+  // Métricas físicas
+  peso          Decimal? @db.Decimal(5, 2)
+  grasaCorporal Decimal? @map("grasa_corporal") @db.Decimal(5, 2)
+  masaMuscular  Decimal? @map("masa_muscular") @db.Decimal(5, 2)
+
+  // Métricas adicionales flexibles
+  medidasAdicionales Json? @map("medidas_adicionales") // Para cualquier medida extra
+
+  // Evaluación subjetiva
+  nivelEnergia Int?    @map("nivel_energia") // 1-5 rating
+  estadoAnimo  Int?    @map("estado_animo") // 1-5 rating
+  notas        String? @db.Text
+
+  // Control administrativo
+  realizadoPor String?   @map("realizado_por") // Quién hizo el control
+  proximaCita  DateTime? @map("proxima_cita") @db.Date // Próximo control programado
+
+  // Timestamps
+  fechaCreacion      DateTime @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime @updatedAt @map("fecha_actualizacion")
+
+  // Relaciones
+  cliente Cliente          @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  plan    PlanNutricional? @relation(fields: [planId], references: [id])
+
+  @@unique([clienteId, fechaControl]) // Un control por día por cliente
+  @@map("controles_fisicos")
+}
+
+// ================================
+// CONSUMO DE PRODUCTOS
+// ================================
+
+model ConsumoProducto {
+  id         String  @id @default(cuid())
+  clienteId  String  @map("cliente_id")
+  productoId String  @map("producto_id")
+  planId     String? @map("plan_id") // Opcional: a qué plan pertenece este consumo
+
+  // Detalles del consumo
+  fechaConsumo DateTime @map("fecha_consumo") @db.Timestamp
+  cantidad     Int      @default(1)
+  tamano       String? // "PEQUEÑO", "GRANDE"
+
+  // Contexto del consumo
+  momentoConsumo MomentoDelDia? @map("momento_consumo") // Cuándo lo tomó
+  notas          String?        @db.Text // Notas del usuario
+
+  // Si fue por recomendación
+  recomendacionId String? @map("recomendacion_id") // Si siguió una recomendación
+  fueRecomendado  Boolean @default(false) @map("fue_recomendado")
+
+  // Timestamps
+  fechaCreacion DateTime @default(now()) @map("fecha_creacion")
+
+  // Relaciones
+  cliente       Cliente                   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  producto      Producto                  @relation(fields: [productoId], references: [id])
+  plan          PlanNutricional?          @relation(fields: [planId], references: [id])
+  recomendacion RecomendacionNutricional? @relation(fields: [recomendacionId], references: [id])
+
+  @@map("consumos_productos")
+}
+
+// ================================
+// ÍNDICES ADICIONALES
+// ================================
+
+// Los índices se pueden definir aquí si necesitas optimizaciones específicas
+// @@index([campo1, campo2])
