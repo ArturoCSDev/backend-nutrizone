@@ -1,3 +1,4 @@
+// src/app.ts
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -22,9 +23,15 @@ const app = express();
 // =============================================
 
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: false // Deshabilitar CSP que puede interferir con CORS
 }));
+
+// ✅ CORS debe ir ANTES que cualquier otra cosa
 app.use(corsMiddleware);
+
+// ✅ Manejo explícito de preflight OPTIONS
+app.options('*', corsMiddleware);
 
 // Rate limiting (solo en producción)
 if (appConfig.security.rateLimit) {
@@ -59,8 +66,9 @@ app.use(morgan(morganFormat, {
     write: (message: string) => logger.info(message.trim()) 
   },
   skip: (req) => {
-    // Skip logging para health checks en producción
-    return appConfig.environment === 'production' && req.url === '/api/v1/health';
+    // Skip logging para health checks y OPTIONS en producción
+    return appConfig.environment === 'production' && 
+           (req.url === '/api/v1/health' || req.method === 'OPTIONS');
   }
 }));
 
@@ -75,7 +83,11 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     environment: appConfig.environment,
     version: process.env.npm_package_version || '1.0.0',
-    uptime: process.uptime()
+    uptime: process.uptime(),
+    cors: {
+      origins: appConfig.corsOrigins,
+      development: appConfig.environment === 'development'
+    }
   });
 });
 
@@ -101,10 +113,14 @@ app.use(appConfig.apiPrefix, routes);
 
 // 404 handler para rutas no encontradas
 app.use('*', (req, res) => {
-  logger.warn(`404 - Route not found: ${req.method} ${req.originalUrl}`, {
-    ip: req.ip,
-    userAgent: req.get('User-Agent')
-  });
+  // No loggear OPTIONS requests
+  if (req.method !== 'OPTIONS') {
+    logger.warn(`404 - Route not found: ${req.method} ${req.originalUrl}`, {
+      ip: req.ip,
+      userAgent: req.get('User-Agent'),
+      origin: req.get('Origin')
+    });
+  }
 
   res.status(404).json({
     status: 'error',
