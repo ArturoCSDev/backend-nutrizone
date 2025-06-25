@@ -15,7 +15,7 @@ export default async function handler(req: any, res: any) {
 
   console.log(`🔍 Request: ${req.method} ${req.url} from ${origin}`);
 
-  // ✅ Configurar CORS headers
+  // ✅ Configurar CORS headers ????
   if (allowedOrigins.includes(origin) || !origin) {
     res.setHeader('Access-Control-Allow-Origin', origin || '*');
   }
