@@ -1,5 +1,5 @@
 // index.ts - EN LA RAÍZ del proyecto
-import app from './src/app-simple'; // ✅ Usar app sin Prisma
+import app from './src/app'; // ✅ Usar app sin Prisma
 
 export default async function handler(req: any, res: any) {
   // ✅ CORS headers ANTES de Express
