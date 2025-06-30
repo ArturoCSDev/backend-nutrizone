@@ -6,8 +6,8 @@ import { validationMiddleware } from '../../../../shared/infrastructure/middlewa
 import { LoginDto } from '../../application/login/login.dto';
 import { RegisterClientDto } from '../../application/register-client/register-client.dto';
 import { RegisterAdminDto } from '../../application/register-admin/register-admin.dto';
-import { ListUserClientsDto } from '../../application/list-user-clients/list-user-clients.dto';
-import { ListUserAdminsDto } from '../../application/list-user-admins/list-user-admins.dto';
+// import { ListUserClientsDto } from '../../application/list-user-clients/list-user-clients.dto';
+// import { ListUserAdminsDto } from '../../application/list-user-admins/list-user-admins.dto';
 
 const router = Router();
 const authController = new AuthController();

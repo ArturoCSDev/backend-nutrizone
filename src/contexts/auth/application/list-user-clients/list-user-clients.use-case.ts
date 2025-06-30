@@ -1,6 +1,5 @@
 import { UsuarioRepository } from '../../domain/repositories/usuario.repository';
 import { ClienteRepository } from '../../../client/domain/repositories/cliente.repository';
-import { RolUsuario } from '@prisma/client';
 import { ListUserClientsDto, ListUserClientsResponse, UserClientItem } from './list-user-clients.dto';
 
 export class ListUserClientsUseCase {

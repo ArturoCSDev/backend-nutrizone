@@ -5,6 +5,7 @@ import { BcryptAdapter } from '../../../../shared/infrastructure/adapters/bcrypt
 import { JwtAdapter } from '../../../../shared/infrastructure/adapters/jwt/jwt.adapter';
 import { UnauthorizedException } from '../../../../shared/core/exceptions/unauthorized.exception';
 import { LoginDto, LoginResponse } from './login.dto';
+import { NotFoundException } from '../../../../shared/core/exceptions/not-found.exception';
 
 export class LoginUseCase {
   constructor(
@@ -17,7 +18,7 @@ export class LoginUseCase {
     // 1. Buscar usuario por DNI
     const usuario = await this.usuarioRepository.findByDni(dto.dni);
     if (!usuario) {
-      throw new UnauthorizedException('Credenciales inválidas');
+      throw new NotFoundException('Usuario no encontrado');
     }
 
     // 2. Verificar que esté activo

@@ -1,4 +1,4 @@
-// src/app.ts - SIN app.listen() para Vercel
+// src/app.ts - Configuración CORS CORREGIDA
 import 'reflect-metadata';
 import express from 'express';
 import cors from 'cors';
@@ -18,38 +18,54 @@ import { logger } from './shared/infrastructure/utils/logger.util';
 const app = express();
 
 // =============================================
-// CORS ULTRA PERMISIVO PARA DEBUG
+// CORS - CONFIGURACIÓN CORREGIDA
 // =============================================
 
-const corsOptions = {
-  origin: true, // ✅ Permite CUALQUIER origin temporalmente
+// ✅ Configuración específica y explícita
+const corsOptions: cors.CorsOptions = {
+  origin: ['http://localhost:5173', 'http://localhost:3000'],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
-  allowedHeaders: ['*'], // ✅ Permite CUALQUIER header
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Origin',
+    'X-Requested-With', 
+    'Content-Type',
+    'Accept',
+    'Authorization',
+    'Cache-Control',
+    'X-HTTP-Method-Override'
+  ],
   exposedHeaders: ['Authorization'],
-  maxAge: 86400,
-  preflightContinue: false,
-  optionsSuccessStatus: 200
+  maxAge: 86400
 };
 
+// ✅ Aplicar CORS ANTES que cualquier otra cosa
 app.use(cors(corsOptions));
 
-// ✅ Manejo manual de OPTIONS
-app.use('*', (req, res, next) => {
-  if (req.method === 'OPTIONS') {
-    console.log('🔄 OPTIONS handled in Express');
-    res.header('Access-Control-Allow-Origin', req.get('Origin') || '*');
+// ✅ Manejo explícito de preflight OPTIONS
+app.options('*', cors(corsOptions));
+
+// =============================================
+// MIDDLEWARE DE DEBUG
+// =============================================
+
+// Debug middleware para ver qué está pasando
+app.use((req, res, next) => {
+  console.log(`🔍 ${req.method} ${req.originalUrl}`);
+  console.log('🌐 Origin:', req.get('Origin'));
+  console.log('📋 Headers:', req.headers);
+  
+  // Asegurar headers CORS en cada respuesta
+  if (req.get('Origin')) {
+    res.header('Access-Control-Allow-Origin', req.get('Origin'));
     res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH');
-    res.header('Access-Control-Allow-Headers', 'Origin,X-Requested-With,Content-Type,Accept,Authorization,Cache-Control');
-    res.header('Access-Control-Max-Age', '1728000');
-    return res.status(200).end();
   }
+  
   next();
 });
 
 // =============================================
-// SECURITY MIDDLEWARE
+// SECURITY MIDDLEWARE (DESPUÉS DE CORS)
 // =============================================
 
 app.use(helmet({
@@ -77,12 +93,6 @@ app.use(express.urlencoded({
 // LOGGING
 // =============================================
 
-app.use((req, res, next) => {
-  console.log(`🔍 ${req.method} ${req.originalUrl} from ${req.get('Origin')}`);
-  next();
-});
-
-// Solo logging básico en producción
 if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
 }
@@ -101,12 +111,24 @@ app.get('/health', (req, res) => {
   });
 });
 
+// ✅ Endpoint específico para probar CORS
 app.get('/cors-test', (req, res) => {
   console.log('🧪 CORS Test endpoint hit from:', req.get('Origin'));
   res.status(200).json({
     message: 'CORS is working!',
     method: req.method,
     origin: req.get('Origin'),
+    headers: req.headers,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// ✅ Endpoint POST para probar CORS con datos
+app.post('/cors-test', (req, res) => {
+  console.log('🧪 POST CORS Test from:', req.get('Origin'));
+  res.status(200).json({
+    message: 'POST CORS is working!',
+    data: req.body,
     timestamp: new Date().toISOString()
   });
 });
