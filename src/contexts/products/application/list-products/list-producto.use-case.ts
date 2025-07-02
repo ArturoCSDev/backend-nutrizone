@@ -1,9 +1,10 @@
 import { ProductoRepository } from '../../domain/repositories/producto.repository';
 import { Producto } from '../../domain/models/producto.model';
 import { ListProductoDto } from './list-producto.dto';
+import { ProductoMapper } from '../../infrastructure/mappers/producto.mapper'; // ✅ IMPORTAR MAPPER
 
 export interface ListProductoResponse {
-  productos: Producto[];
+  productos: ReturnType<typeof ProductoMapper.toResponse>[]; // ✅ USAR TIPO DEL MAPPER
   total: number;
 }
 
@@ -67,9 +68,14 @@ export class ListProductoUseCase {
     // Ordenar alfabéticamente por nombre
     productos.sort((a, b) => a.compareByNombre(b));
 
+    // ✅ USAR MAPPER PARA CONVERTIR A OBJETOS PLANOS
+    const productosResponse = productos.map(producto => ProductoMapper.toResponse(producto));
+
+    console.log('Productos response:', JSON.stringify(productosResponse, null, 2));
+
     return {
-      productos,
-      total: productos.length
+      productos: productosResponse, // ✅ RETORNAR OBJETOS PLANOS
+      total: productosResponse.length
     };
   }
 }

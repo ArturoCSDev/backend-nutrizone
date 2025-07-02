@@ -1,9 +1,11 @@
+// src/features/products/application/use-cases/list-sabor.use-case.ts
 import { SaborRepository } from '../../domain/repositories/sabor.repository';
 import { Sabor } from '../../domain/models/sabor.model';
 import { ListSaborDto } from './list-sabor.dto';
+import { SaborMapper } from '../../infrastructure/mappers/sabor.mapper'; // ✅ IMPORTAR EL MAPPER
 
 export interface ListSaborResponse {
-  sabores: Sabor[];
+  sabores: ReturnType<typeof SaborMapper.toResponse>[]; // ✅ USAR EL TIPO DEL MAPPER
   total: number;
 }
 
@@ -19,7 +21,6 @@ export class ListSaborUseCase {
     } else if (filters.conDescripcion === false) {
       sabores = await this.saborRepository.findWithoutDescripcion();
     } else {
-      // Si no hay filtro específico, traer todos
       sabores = await this.saborRepository.findMany();
     }
 
@@ -34,9 +35,14 @@ export class ListSaborUseCase {
     // Ordenar alfabéticamente por nombre
     sabores.sort((a, b) => a.compareByNombre(b));
 
+    // ✅ USAR EL MAPPER QUE YA TIENES
+    const saboresResponse = sabores.map(sabor => SaborMapper.toResponse(sabor));
+
+    console.log('Sabores response:', saboresResponse);
+    
     return {
-      sabores,
-      total: sabores.length
+      sabores: saboresResponse,
+      total: saboresResponse.length
     };
   }
 }

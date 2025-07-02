@@ -1,9 +1,10 @@
 import { CategoriaRepository } from '../../domain/repositories/categoria.repository';
 import { Categoria, TipoProducto } from '../../domain/models/categoria.model';
 import { ListCategoriaDto } from './list-categoria.dto';
+import { CategoriaMapper } from '../../infrastructure/mappers/categoria.mapper'; // ✅ IMPORTAR MAPPER
 
 export interface ListCategoriaResponse {
-  categorias: Categoria[];
+  categorias: ReturnType<typeof CategoriaMapper.toResponse>[]; // ✅ USAR TIPO DEL MAPPER
   total: number;
 }
 
@@ -13,15 +14,12 @@ export class ListCategoriaUseCase {
   async execute(filters: ListCategoriaDto): Promise<ListCategoriaResponse> {
     let categorias: Categoria[];
 
-    // Si hay filtro por tipo de producto, filtrar por ese criterio
     if (filters.tipoProducto) {
       categorias = await this.categoriaRepository.findByTipoProducto(filters.tipoProducto);
     } else {
-      // Si no hay filtros específicos, traer todas las categorías
       categorias = await this.categoriaRepository.findMany();
     }
 
-    // Filtrar por nombre si se proporciona (búsqueda local ya que no hay método específico en el repositorio)
     if (filters.nombre) {
       const nombreLower = filters.nombre.toLowerCase();
       categorias = categorias.filter(categoria => 
@@ -29,9 +27,12 @@ export class ListCategoriaUseCase {
       );
     }
 
+    // ✅ USAR MAPPER
+    const categoriasResponse = categorias.map(categoria => CategoriaMapper.toResponse(categoria));
+
     return {
-      categorias,
-      total: categorias.length
+      categorias: categoriasResponse, // ✅ RETORNAR OBJETOS PLANOS
+      total: categoriasResponse.length
     };
   }
 }
