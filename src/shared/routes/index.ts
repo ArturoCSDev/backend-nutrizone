@@ -4,6 +4,7 @@ import { logger } from '../infrastructure/utils/logger.util';
 // Importar rutas de cada contexto cuando las crees
 import { authRoutes } from '../../contexts/auth/infrastructure/controllers/auth.routes';
 import { productsRoutes } from '../../contexts/products/infrastructure/controllers/product.routes';
+import { nutritionPlansRoutes } from '../../contexts/nutrition-plans/infrastructure/controllers/nutrition-plans.routes';
 
 const router = Router();
 
@@ -19,8 +20,8 @@ router.get('/health', (req, res) => {
 
 // Registrar rutas de contextos
 router.use('/auth', authRoutes);
-router.use('/inventory', productsRoutes);
-// router.use('/nutrition-plans', nutritionPlanRoutes);
+router.use('/products', productsRoutes);
+router.use('/nutrition-plans', nutritionPlansRoutes);
 // router.use('/chat', chatRoutes);
 
 // Ruta de ejemplo para probar

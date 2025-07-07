@@ -15,3 +15,18 @@ export class ListCategoriaDto {
   @Transform(({ value }) => value?.trim())
   nombre?: string;
 }
+
+// Tipos para la respuesta (Response)
+export interface CategoriaResponse {
+  id: string;
+  nombre: string;
+  descripcion: string | null;
+  tipoProducto: TipoProducto;
+  fechaCreacion: string; // ISO string para serialización
+  fechaActualizacion: string; // ISO string para serialización
+}
+
+export interface ListCategoriaResponse {
+  categorias: CategoriaResponse[];
+  total: number;
+}

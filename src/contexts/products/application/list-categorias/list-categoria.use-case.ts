@@ -1,12 +1,6 @@
 import { CategoriaRepository } from '../../domain/repositories/categoria.repository';
-import { Categoria, TipoProducto } from '../../domain/models/categoria.model';
-import { ListCategoriaDto } from './list-categoria.dto';
-import { CategoriaMapper } from '../../infrastructure/mappers/categoria.mapper'; // ✅ IMPORTAR MAPPER
-
-export interface ListCategoriaResponse {
-  categorias: ReturnType<typeof CategoriaMapper.toResponse>[]; // ✅ USAR TIPO DEL MAPPER
-  total: number;
-}
+import { Categoria } from '../../domain/models/categoria.model';
+import { CategoriaResponse, ListCategoriaDto, ListCategoriaResponse } from './list-categoria.dto';
 
 export class ListCategoriaUseCase {
   constructor(private readonly categoriaRepository: CategoriaRepository) {}
@@ -14,12 +8,14 @@ export class ListCategoriaUseCase {
   async execute(filters: ListCategoriaDto): Promise<ListCategoriaResponse> {
     let categorias: Categoria[];
 
+    // Obtener categorías según filtros
     if (filters.tipoProducto) {
       categorias = await this.categoriaRepository.findByTipoProducto(filters.tipoProducto);
     } else {
       categorias = await this.categoriaRepository.findMany();
     }
 
+    // Filtrar por nombre si se proporciona
     if (filters.nombre) {
       const nombreLower = filters.nombre.toLowerCase();
       categorias = categorias.filter(categoria => 
@@ -27,11 +23,18 @@ export class ListCategoriaUseCase {
       );
     }
 
-    // ✅ USAR MAPPER
-    const categoriasResponse = categorias.map(categoria => CategoriaMapper.toResponse(categoria));
+    // Transformar a respuesta usando método nativo de la entidad
+    const categoriasResponse: CategoriaResponse[] = categorias.map(categoria => ({
+      id: categoria.id,
+      nombre: categoria.nombre,
+      descripcion: categoria.descripcion,
+      tipoProducto: categoria.tipoProducto,
+      fechaCreacion: categoria.fechaCreacion.toISOString(),
+      fechaActualizacion: categoria.fechaActualizacion.toISOString()
+    }));
 
     return {
-      categorias: categoriasResponse, // ✅ RETORNAR OBJETOS PLANOS
+      categorias: categoriasResponse,
       total: categoriasResponse.length
     };
   }
