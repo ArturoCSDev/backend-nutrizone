@@ -15,20 +15,25 @@ export class ListUserClientsDto {
   @Transform(({ value }) => value === 'true')
   @IsBoolean()
   onlyCompleteProfiles?: boolean;
+
+  @IsOptional()
+  @IsString()
+  clientId?: string; // Nuevo: para obtener cliente específico por ID de cliente
 }
 
 export interface UserClientItem {
   // Datos de Usuario
-  id: string;
+  id: string; // ID del usuario
   email: string;
   dni: string;
   nombreCompleto: string;
   active: boolean;
   fechaCreacion: Date;
+  fechaActualizacion: Date;
   
   // Datos de Cliente
   cliente: {
-    id: string;
+    id: string; // ID de la tabla cliente (este es el que necesitamos)
     edad: number | null;
     peso: number | null;
     altura: number | null;

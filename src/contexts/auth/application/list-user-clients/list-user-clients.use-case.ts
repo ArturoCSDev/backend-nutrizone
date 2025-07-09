@@ -9,6 +9,11 @@ export class ListUserClientsUseCase {
   ) {}
 
   async execute(dto: ListUserClientsDto = {}): Promise<ListUserClientsResponse> {
+    // Si se solicita un cliente específico por ID de cliente
+    if (dto.clientId) {
+      return this.getSingleClient(dto.clientId);
+    }
+
     // 1. Obtener todos los usuarios clientes
     const usuarios = await this.usuarioRepository.findMany();
     const clienteUsuarios = usuarios.filter(user => user.isClient());
@@ -24,14 +29,15 @@ export class ListUserClientsUseCase {
       
       if (cliente) {
         userClients.push({
-          id: usuario.id,
+          id: usuario.id, // ID del usuario
           email: usuario.email,
           dni: usuario.dni,
           nombreCompleto: usuario.nombreCompleto,
           active: usuario.active,
           fechaCreacion: usuario.fechaCreacion,
+          fechaActualizacion: usuario.fechaActualizacion,
           cliente: {
-            id: cliente.id,
+            id: cliente.id, // ID de la tabla cliente
             edad: cliente.edad,
             peso: cliente.peso ? Number(cliente.peso) : null,
             altura: cliente.altura ? Number(cliente.altura) : null,
@@ -81,6 +87,70 @@ export class ListUserClientsUseCase {
         totalInactive,
         totalCompleteProfiles,
         totalIncompleteProfiles
+      }
+    };
+  }
+
+  private async getSingleClient(clienteId: string): Promise<ListUserClientsResponse> {
+    // 1. Buscar el cliente por ID
+    const cliente = await this.clienteRepository.findById(clienteId);
+    if (!cliente) {
+      return {
+        users: [],
+        total: 0,
+        summary: {
+          totalActive: 0,
+          totalInactive: 0,
+          totalCompleteProfiles: 0,
+          totalIncompleteProfiles: 0
+        }
+      };
+    }
+
+    // 2. Buscar el usuario asociado
+    const usuario = await this.usuarioRepository.findById(cliente.usuarioId);
+    if (!usuario || !usuario.isClient()) {
+      return {
+        users: [],
+        total: 0,
+        summary: {
+          totalActive: 0,
+          totalInactive: 0,
+          totalCompleteProfiles: 0,
+          totalIncompleteProfiles: 0
+        }
+      };
+    }
+
+    // 3. Construir el objeto de respuesta
+    const userClient: UserClientItem = {
+      id: usuario.id, // ID del usuario
+      email: usuario.email,
+      dni: usuario.dni,
+      nombreCompleto: usuario.nombreCompleto,
+      active: usuario.active,
+      fechaCreacion: usuario.fechaCreacion,
+      fechaActualizacion: usuario.fechaActualizacion,
+      cliente: {
+        id: cliente.id, // ID de la tabla cliente
+        edad: cliente.edad,
+        peso: cliente.peso ? Number(cliente.peso) : null,
+        altura: cliente.altura ? Number(cliente.altura) : null,
+        telefono: cliente.telefono,
+        genero: cliente.genero,
+        hasCompleteProfile: cliente.hasCompleteProfile(),
+        imc: cliente.imc ? Number(cliente.imc) : null
+      }
+    };
+
+    return {
+      users: [userClient],
+      total: 1,
+      summary: {
+        totalActive: usuario.active ? 1 : 0,
+        totalInactive: usuario.active ? 0 : 1,
+        totalCompleteProfiles: cliente.hasCompleteProfile() ? 1 : 0,
+        totalIncompleteProfiles: cliente.hasCompleteProfile() ? 0 : 1
       }
     };
   }

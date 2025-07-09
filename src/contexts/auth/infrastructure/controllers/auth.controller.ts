@@ -126,16 +126,34 @@ export class AuthController {
 
   listUserClients = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      logger.info('Listing user clients', { query: req.query });
+      const queryParams = {
+        search: req.query.search as string,
+        onlyActive: req.query.onlyActive === 'true' ? true : req.query.onlyActive === 'false' ? false : undefined,
+        onlyCompleteProfiles: req.query.onlyCompleteProfiles === 'true' ? true : req.query.onlyCompleteProfiles === 'false' ? false : undefined,
+        clientId: req.query.clientId as string // Nuevo parámetro
+      };
 
-      const result = await this.listUserClientsUseCase.execute(req.query);
+      logger.info('Listing user clients', { query: queryParams });
+
+      const result = await this.listUserClientsUseCase.execute(queryParams);
       
-      logger.info('User clients listed successfully', { 
-        total: result.total,
-        active: result.summary.totalActive
-      });
+      if (queryParams.clientId) {
+        logger.info('Single client retrieved', { 
+          clientId: queryParams.clientId,
+          found: result.users.length > 0
+        });
+      } else {
+        logger.info('User clients listed successfully', { 
+          total: result.total,
+          active: result.summary.totalActive
+        });
+      }
 
-      const response = ResponseUtil.success(result, 'Lista de clientes obtenida exitosamente');
+      const response = ResponseUtil.success(result, 
+        queryParams.clientId 
+          ? 'Cliente obtenido exitosamente' 
+          : 'Lista de clientes obtenida exitosamente'
+      );
       res.status(200).json(response);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
