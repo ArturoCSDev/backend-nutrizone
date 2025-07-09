@@ -1,5 +1,4 @@
 import { Decimal } from '@prisma/client/runtime/library';
-import { Prisma } from '@prisma/client';
 
 export interface MedidasAdicionales {
   [key: string]: string;

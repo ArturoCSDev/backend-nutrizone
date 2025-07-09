@@ -8,7 +8,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  //directUrl      = env("DIRECT_URL")
+  directUrl      = env("DIRECT_URL")
 }
 
 // Enums
@@ -309,7 +309,7 @@ model PlanNutricional {
   // Fechas
   fechaInicio DateTime  @map("fecha_inicio") @db.Date
   fechaFin    DateTime? @map("fecha_fin") @db.Date
-  duracion    Int? // en días
+  duracion    Int?
 
   // Metas nutricionales
   caloriasObjetivo      Int? @map("calorias_objetivo")
@@ -317,7 +317,7 @@ model PlanNutricional {
   carbohidratosObjetivo Int? @map("carbohidratos_objetivo")
   grasasObjetivo        Int? @map("grasas_objetivo")
 
-  // Información lipídica base (snapshot al crear el plan)
+  // Información lipídica base
   pesoInicial     Decimal? @map("peso_inicial") @db.Decimal(5, 2)
   grasaInicial    Decimal? @map("grasa_inicial") @db.Decimal(5, 2)
   muscularInicial Decimal? @map("muscular_inicial") @db.Decimal(5, 2)
@@ -327,10 +327,11 @@ model PlanNutricional {
   fechaActualizacion DateTime @updatedAt @map("fecha_actualizacion")
 
   // Relaciones
-  cliente          Cliente            @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  cliente          Cliente                    @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   controlesFisicos ControlFisico[]
   conversaciones   ConversacionChat[]
   consumos         ConsumoProducto[]
+  recomendaciones  RecomendacionNutricional[] // ← NUEVA RELACIÓN
 
   @@map("planes_nutricionales")
 }
@@ -403,22 +404,25 @@ model MensajeChat {
 
 model RecomendacionNutricional {
   id         String  @id @default(cuid())
-  mensajeId  String  @map("mensaje_id")
+  mensajeId  String? @map("mensaje_id") // ← CAMBIAR: ahora es opcional
   productoId String  @map("producto_id")
-  tamanoId   String? @map("tamano_id") // Tamaño específico recomendado
+  tamanoId   String? @map("tamano_id")
+
+  // Agregar referencia directa al plan (NUEVO)
+  planId String? @map("plan_id") // ← NUEVO CAMPO
 
   // Información de la recomendación (para el mockup)
-  tituloRecomendacion String?   @map("titulo_recomendacion") // "🎯 RECOMENDACIÓN INMEDIATA"
-  iconoProducto       String?   @map("icono_producto") // "🥤"
-  timingRecomendado   String    @map("timing_recomendado") // 'inmediato', 'pre_entrenamiento'
+  tituloRecomendacion String?   @map("titulo_recomendacion")
+  iconoProducto       String?   @map("icono_producto")
+  timingRecomendado   String    @map("timing_recomendado")
   horarioEspecifico   DateTime? @map("horario_especifico") @db.Time
-  timingAdicional     String?   @map("timing_adicional") // "MAÑANA: 30 min antes del desayuno"
+  timingAdicional     String?   @map("timing_adicional")
 
   // Detalles
   prioridad    Prioridad
-  razonamiento String    @db.Text // explicación científica
-  dosis        String? // cantidad recomendada
-  frecuencia   String? // frecuencia de consumo
+  razonamiento String    @db.Text
+  dosis        String?
+  frecuencia   String?
 
   // Estado de la recomendación
   respuestaUsuario RespuestaUsuario @default(PENDIENTE) @map("respuesta_usuario")
@@ -429,9 +433,10 @@ model RecomendacionNutricional {
   fechaRespuesta DateTime? @map("fecha_respuesta")
 
   // Relaciones
-  mensaje  MensajeChat       @relation(fields: [mensajeId], references: [id], onDelete: Cascade)
+  mensaje  MensajeChat?      @relation(fields: [mensajeId], references: [id], onDelete: Cascade)
   producto Producto          @relation(fields: [productoId], references: [id])
   tamano   Tamano?           @relation(fields: [tamanoId], references: [id])
+  plan     PlanNutricional?  @relation(fields: [planId], references: [id]) // ← NUEVA RELACIÓN
   consumos ConsumoProducto[]
 
   @@map("recomendaciones_nutricionales")

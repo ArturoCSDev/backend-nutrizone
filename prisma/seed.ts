@@ -1,199 +1,252 @@
 // prisma/seed.ts
-import { PrismaClient, TipoProducto } from '@prisma/client';
+import { PrismaClient, RolUsuario, TipoProducto } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('🌱 Iniciando seed de la base de datos...');
 
-  // =============================================
-  // TAMAÑOS
-  // =============================================
-  console.log('📏 Creando tamaños...');
-  
-  const tamanoMega = await prisma.tamano.upsert({
-    where: { nombre: 'Mega' },
-    update: {},
-    create: {
-      nombre: 'Mega',
-      volumen: 600, // ml
-      proteina: 27, // gramos
-    },
-  });
+  try {
+    // Verificar si ya existe el usuario admin
+    const existingAdmin = await prisma.usuario.findUnique({
+      where: { email: 'admin@nutrizone.com' }
+    });
 
-  const tamanoMini = await prisma.tamano.upsert({
-    where: { nombre: 'Mini' },
-    update: {},
-    create: {
-      nombre: 'Mini',
-      volumen: 420, // ml
-      proteina: 18, // gramos
-    },
-  });
+    if (existingAdmin) {
+      console.log('ℹ️  Usuario administrador ya existe, saltando creación...');
+    } else {
+      // Hashear contraseña
+      const hashedPassword = await bcrypt.hash('Admin123!', 12);
 
-  console.log(`✅ Tamaños creados: ${tamanoMega.nombre} (${tamanoMega.volumen}ml), ${tamanoMini.nombre} (${tamanoMini.volumen}ml)`);
+      // Crear usuario administrador
+      console.log('👤 Creando usuario administrador...');
+      const adminUser = await prisma.usuario.create({
+        data: {
+          email: 'admin@nutrizone.com',
+          dni: '12345678',
+          password: hashedPassword,
+          nombre: 'Super',
+          apellidoPaterno: 'Admin',
+          apellidoMaterno: 'NutriZone',
+          rol: RolUsuario.ADMINISTRADOR,
+          active: true,
+        },
+      });
 
-  // =============================================
-  // CATEGORÍAS
-  // =============================================
-  console.log('📂 Creando categorías...');
+      console.log('✅ Usuario creado:', {
+        id: adminUser.id,
+        email: adminUser.email,
+        dni: adminUser.dni,
+        nombre: adminUser.nombre,
+        rol: adminUser.rol,
+      });
 
-  const categoriaWaffles = await prisma.categoria.upsert({
-    where: { nombre: 'Waffles' },
-    update: {},
-    create: {
-      nombre: 'Waffles',
-      descripcion: 'Deliciosos waffles nutritivos',
-      tipoProducto: TipoProducto.WAFFLE,
-    },
-  });
+      // Crear perfil de administrador
+      console.log('🛡️  Creando perfil de administrador...');
+      const adminProfile = await prisma.administrador.create({
+        data: {
+          usuarioId: adminUser.id,
+          departamento: 'Tecnología',
+          nivelAcceso: 5, // Nivel máximo
+        },
+      });
 
-  const categoriaBatidos = await prisma.categoria.upsert({
-    where: { nombre: 'Batidos' },
-    update: {},
-    create: {
-      nombre: 'Batidos',
-      descripcion: 'Batidos proteicos y nutritivos',
-      tipoProducto: TipoProducto.BATIDO,
-    },
-  });
+      console.log('✅ Perfil de administrador creado:', {
+        id: adminProfile.id,
+        departamento: adminProfile.departamento,
+        nivelAcceso: adminProfile.nivelAcceso,
+      });
+    }
 
-  const categoriaRefrescos = await prisma.categoria.upsert({
-    where: { nombre: 'Refrescos' },
-    update: {},
-    create: {
-      nombre: 'Refrescos',
-      descripcion: 'Bebidas refrescantes y saludables',
-      tipoProducto: TipoProducto.REFRESCO,
-    },
-  });
+    // Crear categorías permanentes
+    console.log('📦 Creando categorías permanentes...');
+    
+    const categorias = [
+      {
+        nombre: 'Batidos Proteicos',
+        descripcion: 'Batidos con alto contenido proteico para ganancia muscular y recuperación',
+        tipoProducto: TipoProducto.BATIDO
+      },
+      {
+        nombre: 'Refrescos Funcionales',
+        descripcion: 'Bebidas refrescantes con beneficios nutricionales específicos',
+        tipoProducto: TipoProducto.REFRESCO
+      },
+      {
+        nombre: 'Waffles Fitness',
+        descripcion: 'Waffles nutritivos ideales para pre y post entrenamiento',
+        tipoProducto: TipoProducto.WAFFLE
+      }
+    ];
 
-  console.log(`✅ Categorías creadas: ${categoriaWaffles.nombre}, ${categoriaBatidos.nombre}, ${categoriaRefrescos.nombre}`);
+    for (const categoriaData of categorias) {
+      // Verificar si la categoría ya existe
+      const existingCategoria = await prisma.categoria.findUnique({
+        where: { nombre: categoriaData.nombre }
+      });
 
-  // =============================================
-  // SABORES (OPCIONAL - Para que tengas algunos datos)
-  // =============================================
-  console.log('🍓 Creando sabores básicos...');
+      if (!existingCategoria) {
+        const categoria = await prisma.categoria.create({
+          data: categoriaData
+        });
+        console.log(`✅ Categoría creada: ${categoria.nombre}`);
+      } else {
+        console.log(`ℹ️  Categoría '${categoriaData.nombre}' ya existe, saltando...`);
+      }
+    }
 
-  const saborVainilla = await prisma.sabor.upsert({
-    where: { nombre: 'Vainilla' },
-    update: {},
-    create: {
-      nombre: 'Vainilla',
-      descripcion: 'Sabor clásico y cremoso',
-    },
-  });
+    // Crear tamaños permanentes
+    console.log('📏 Creando tamaños permanentes...');
+    
+    const tamanos = [
+      {
+        nombre: 'Regular',
+        volumen: 500, // 500ml
+        proteina: 25  // 25g de proteína
+      },
+      {
+        nombre: 'Grande',
+        volumen: 750, // 750ml
+        proteina: 35  // 35g de proteína
+      }
+    ];
 
-  const saborChocolate = await prisma.sabor.upsert({
-    where: { nombre: 'Chocolate' },
-    update: {},
-    create: {
-      nombre: 'Chocolate',
-      descripcion: 'Rico sabor a chocolate',
-    },
-  });
+    for (const tamanoData of tamanos) {
+      // Verificar si el tamaño ya existe
+      const existingTamano = await prisma.tamano.findUnique({
+        where: { nombre: tamanoData.nombre }
+      });
 
-  const saborFresa = await prisma.sabor.upsert({
-    where: { nombre: 'Fresa' },
-    update: {},
-    create: {
-      nombre: 'Fresa',
-      descripcion: 'Sabor natural a fresa',
-    },
-  });
+      if (!existingTamano) {
+        const tamano = await prisma.tamano.create({
+          data: tamanoData
+        });
+        console.log(`✅ Tamaño creado: ${tamano.nombre} (${tamano.volumen}ml, ${tamano.proteina}g proteína)`);
+      } else {
+        console.log(`ℹ️  Tamaño '${tamanoData.nombre}' ya existe, saltando...`);
+      }
+    }
 
-  console.log(`✅ Sabores creados: ${saborVainilla.nombre}, ${saborChocolate.nombre}, ${saborFresa.nombre}`);
+    // Crear algunos usuarios cliente de ejemplo (opcional)
+    console.log('👥 Creando usuarios cliente de ejemplo...');
+    
+    const clientUsers = [
+      {
+        email: 'juan.perez@example.com',
+        dni: '87654321',
+        nombre: 'Juan',
+        apellidoPaterno: 'Pérez',
+        apellidoMaterno: 'García',
+        clientData: {
+          edad: 28,
+          peso: 75.5,
+          altura: 175,
+          genero: 'Masculino',
+          telefono: '987654321',
+        }
+      },
+      {
+        email: 'maria.lopez@example.com',
+        dni: '11223344',
+        nombre: 'María',
+        apellidoPaterno: 'López',
+        apellidoMaterno: 'Rodríguez',
+        clientData: {
+          edad: 32,
+          peso: 62.0,
+          altura: 165,
+          genero: 'Femenino',
+          telefono: '987654322',
+        }
+      }
+    ];
 
-  // =============================================
-  // PRODUCTOS DE EJEMPLO (OPCIONAL)
-  // =============================================
-  console.log('🥤 Creando productos de ejemplo...');
+    for (const userData of clientUsers) {
+      // Verificar si el usuario ya existe
+      const existingUser = await prisma.usuario.findUnique({
+        where: { email: userData.email }
+      });
 
-  // Batido de Vainilla Mega
-  const batidoVainillaMega = await prisma.producto.upsert({
-    where: { id: 'Batido Proteico Vainilla Mega' },
-    update: {},
-    create: {
-      nombre: 'Batido Proteico Vainilla Mega',
-      descripcion: 'Batido proteico sabor vainilla en presentación Mega',
-      precio: 15.50,
-      proteina: 27,
-      calorias: 150,
-      volumen: 600,
-      carbohidratos: 8,
-      grasas: 2,
-      fibra: 1,
-      azucar: 5,
-      categoriaId: categoriaBatidos.id,
-      saborId: saborVainilla.id,
-      tamanoId: tamanoMega.id,
-      ingredientes: ['Proteína de suero', 'Saborizante natural', 'Vitaminas', 'Minerales'],
-      etiquetas: ['Alto en proteína', 'Bajo en grasa', 'Post-entreno'],
-      momentosRecomendados: ['POST_ENTRENAMIENTO', 'MANANA'],
-    },
-  });
+      if (!existingUser) {
+        const hashedClientPassword = await bcrypt.hash('Cliente123!', 12);
+        
+        const clientUser = await prisma.usuario.create({
+          data: {
+            email: userData.email,
+            dni: userData.dni,
+            password: hashedClientPassword,
+            nombre: userData.nombre,
+            apellidoPaterno: userData.apellidoPaterno,
+            apellidoMaterno: userData.apellidoMaterno,
+            rol: RolUsuario.CLIENTE,
+            active: true,
+          },
+        });
 
-  // Batido de Chocolate Mini
-  const batidoChocolateMini = await prisma.producto.upsert({
-    where: { id: 'Batido Proteico Chocolate Mini' },
-    update: {},
-    create: {
-      nombre: 'Batido Proteico Chocolate Mini',
-      descripcion: 'Batido proteico sabor chocolate en presentación Mini',
-      precio: 12.00,
-      proteina: 18,
-      calorias: 110,
-      volumen: 420,
-      carbohidratos: 6,
-      grasas: 1,
-      fibra: 1,
-      azucar: 4,
-      categoriaId: categoriaBatidos.id,
-      saborId: saborChocolate.id,
-      tamanoId: tamanoMini.id,
-      ingredientes: ['Proteína de suero', 'Cacao natural', 'Vitaminas', 'Minerales'],
-      etiquetas: ['Alto en proteína', 'Sabor intenso', 'Pre-entreno'],
-      momentosRecomendados: ['PRE_ENTRENAMIENTO', 'TARDE'],
-    },
-  });
+        const client = await prisma.cliente.create({
+          data: {
+            usuarioId: clientUser.id,
+            edad: userData.clientData.edad,
+            peso: userData.clientData.peso,
+            altura: userData.clientData.altura,
+            genero: userData.clientData.genero,
+            telefono: userData.clientData.telefono,
+          },
+        });
 
-  // Waffle de Fresa
-  const waffleFresa = await prisma.producto.upsert({
-    where: { id: 'Waffle Proteico Fresa' },
-    update: {},
-    create: {
-      nombre: 'Waffle Proteico Fresa',
-      descripcion: 'Waffle proteico con sabor natural a fresa',
-      precio: 8.50,
-      proteina: 15,
-      calorias: 200,
-      carbohidratos: 25,
-      grasas: 6,
-      fibra: 3,
-      azucar: 8,
-      categoriaId: categoriaWaffles.id,
-      saborId: saborFresa.id,
-      ingredientes: ['Harina de avena', 'Proteína vegetal', 'Fresa deshidratada', 'Huevo'],
-      etiquetas: ['Desayuno saludable', 'Rico en fibra', 'Sabor natural'],
-      momentosRecomendados: ['MANANA', 'TARDE'],
-    },
-  });
+        // Crear preferencias básicas para el cliente
+        await prisma.preferenciaCliente.create({
+          data: {
+            clienteId: client.id,
+            productosFavoritos: [],
+            preferenciasDieteticas: ['Sin gluten', 'Bajo en sodio'],
+            alergenos: [],
+            objetivosFitness: ['PERDIDA_PESO'],
+            diasEntrenamiento: ['LUNES', 'MIERCOLES', 'VIERNES'],
+            horariosEntrenamiento: ['07:00', '18:00'],
+          },
+        });
 
-  console.log(`✅ Productos creados: ${batidoVainillaMega.nombre}, ${batidoChocolateMini.nombre}, ${waffleFresa.nombre}`);
+        console.log(`✅ Cliente creado: ${userData.nombre} ${userData.apellidoPaterno}`);
+      } else {
+        console.log(`ℹ️  Cliente '${userData.email}' ya existe, saltando...`);
+      }
+    }
 
-  console.log('🎉 ¡Seed completado exitosamente!');
-  console.log('\n📊 Resumen de datos creados:');
-  console.log(`- Tamaños: 2 (Mega, Mini)`);
-  console.log(`- Categorías: 3 (Waffles, Batidos, Refrescos)`);
-  console.log(`- Sabores: 3 (Vainilla, Chocolate, Fresa)`);
-  console.log(`- Productos: 3 (ejemplos de cada categoría)`);
+    console.log('\n🎉 Seed completado exitosamente!');
+    console.log('\n📋 Datos creados:');
+    console.log('=================================');
+    console.log('📦 CATEGORÍAS:');
+    console.log('   • Batidos Proteicos');
+    console.log('   • Refrescos Funcionales');
+    console.log('   • Waffles Fitness');
+    console.log('\n📏 TAMAÑOS:');
+    console.log('   • Regular (500ml, 25g proteína)');
+    console.log('   • Grande (750ml, 35g proteína)');
+    console.log('\n📋 Credenciales de acceso:');
+    console.log('=================================');
+    console.log('👨‍💼 ADMINISTRADOR:');
+    console.log('   Email/DNI: admin@nutrizone.com / 12345678');
+    console.log('   Password: Admin123!');
+    console.log('\n👤 CLIENTES DE EJEMPLO:');
+    console.log('   Email/DNI: juan.perez@example.com / 87654321');
+    console.log('   Email/DNI: maria.lopez@example.com / 11223344');
+    console.log('   Password: Cliente123!');
+    console.log('=================================\n');
+
+  } catch (error) {
+    console.error('❌ Error durante el seed:', error);
+    throw error;
+  }
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Error durante el seed:', e);
+    console.error('❌ Error fatal en seed:', e);
     process.exit(1);
   })
   .finally(async () => {
     await prisma.$disconnect();
+    console.log('🔌 Conexión a base de datos cerrada');
   });

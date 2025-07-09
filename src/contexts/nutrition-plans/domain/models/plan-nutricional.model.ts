@@ -1,43 +1,22 @@
-// enums.ts (si lo deseas en archivo aparte)
-export enum ObjetivoNutricional {
-    PERDIDA_PESO='PERDIDA_PESO',
-    GANANCIA_MUSCULAR='GANANCIA_MUSCULAR',
-    MANTENIMIENTO='MANTENIMIENTO',
-    DEFINICION='DEFINICION',
-    VOLUMEN='VOLUMEN',
-    RECUPERACION='RECUPERACION'
-  }
-  
-  export enum EstadoPlan {
-    ACTIVO = 'ACTIVO',
-    COMPLETADO = 'COMPLETADO',
-    PAUSADO = 'PAUSADO',
-    CANCELADO = 'CANCELADO'
-  }
-  
-  // plan-nutricional.model.ts
+import { ObjetivoNutricional, EstadoPlan } from '@prisma/client';
+
 export interface PrimitivePlanNutricional {
   id: string;
   clienteId: string;
-
   nombre: string;
   descripcion: string | null;
   objetivo: ObjetivoNutricional;
   estado: EstadoPlan;
-
   fechaInicio: Date;
   fechaFin: Date | null;
   duracion: number | null;
-
   caloriasObjetivo: number | null;
   proteinaObjetivo: number | null;
   carbohidratosObjetivo: number | null;
   grasasObjetivo: number | null;
-
   pesoInicial: number | null;
   grasaInicial: number | null;
   muscularInicial: number | null;
-
   fechaCreacion: Date;
   fechaActualizacion: Date;
 }
@@ -61,120 +40,185 @@ export class PlanNutricional {
     return new PlanNutricional(primitives);
   }
 
-  // Getters
-  get id(): string {
-    return this._attributes.id;
+  // Getters básicos
+  get id(): string { 
+    return this._attributes.id; 
   }
 
-  get clienteId(): string {
-    return this._attributes.clienteId;
+  get clienteId(): string { 
+    return this._attributes.clienteId; 
   }
 
-  get nombre(): string {
-    return this._attributes.nombre;
+  get nombre(): string { 
+    return this._attributes.nombre; 
   }
 
-  get descripcion(): string | null {
-    return this._attributes.descripcion;
+  get descripcion(): string | null { 
+    return this._attributes.descripcion; 
   }
 
-  get objetivo(): ObjetivoNutricional {
-    return this._attributes.objetivo;
+  get objetivo(): ObjetivoNutricional { 
+    return this._attributes.objetivo; 
   }
 
-  get estado(): EstadoPlan {
-    return this._attributes.estado;
+  get estado(): EstadoPlan { 
+    return this._attributes.estado; 
   }
 
-  get fechaInicio(): Date {
-    return this._attributes.fechaInicio;
+  get fechaInicio(): Date { 
+    return this._attributes.fechaInicio; 
   }
 
-  get fechaFin(): Date | null {
-    return this._attributes.fechaFin;
+  get fechaFin(): Date | null { 
+    return this._attributes.fechaFin; 
   }
 
-  get duracion(): number | null {
-    return this._attributes.duracion;
+  get duracion(): number | null { 
+    return this._attributes.duracion; 
   }
 
-  get caloriasObjetivo(): number | null {
-    return this._attributes.caloriasObjetivo;
+  get caloriasObjetivo(): number | null { 
+    return this._attributes.caloriasObjetivo; 
   }
 
-  get proteinaObjetivo(): number | null {
-    return this._attributes.proteinaObjetivo;
+  get proteinaObjetivo(): number | null { 
+    return this._attributes.proteinaObjetivo; 
   }
 
-  get carbohidratosObjetivo(): number | null {
-    return this._attributes.carbohidratosObjetivo;
+  get carbohidratosObjetivo(): number | null { 
+    return this._attributes.carbohidratosObjetivo; 
   }
 
-  get grasasObjetivo(): number | null {
-    return this._attributes.grasasObjetivo;
+  get grasasObjetivo(): number | null { 
+    return this._attributes.grasasObjetivo; 
   }
 
-  get pesoInicial(): number | null {
-    return this._attributes.pesoInicial;
+  get pesoInicial(): number | null { 
+    return this._attributes.pesoInicial; 
   }
 
-  get grasaInicial(): number | null {
-    return this._attributes.grasaInicial;
+  get grasaInicial(): number | null { 
+    return this._attributes.grasaInicial; 
   }
 
-  get muscularInicial(): number | null {
-    return this._attributes.muscularInicial;
+  get muscularInicial(): number | null { 
+    return this._attributes.muscularInicial; 
   }
 
-  get fechaCreacion(): Date {
-    return this._attributes.fechaCreacion;
+  get fechaCreacion(): Date { 
+    return this._attributes.fechaCreacion; 
   }
 
-  get fechaActualizacion(): Date {
-    return this._attributes.fechaActualizacion;
+  get fechaActualizacion(): Date { 
+    return this._attributes.fechaActualizacion; 
   }
 
-  // Métodos de negocio
-  isActivo(): boolean {
+  // Getters compuestos
+  get isActive(): boolean {
     return this.estado === EstadoPlan.ACTIVO;
   }
 
-  isFinalizado(): boolean {
+  get isCompleted(): boolean {
     return this.estado === EstadoPlan.COMPLETADO;
   }
 
-  isPausado(): boolean {
+  get isPaused(): boolean {
     return this.estado === EstadoPlan.PAUSADO;
   }
 
-  isCancelado(): boolean {
+  get isCanceled(): boolean {
     return this.estado === EstadoPlan.CANCELADO;
   }
 
-  updateDescripcion(nuevaDescripcion: string | null): PlanNutricional {
+  get daysRemaining(): number | null {
+    if (!this.fechaFin) return null;
+    const today = new Date();
+    const diffTime = this.fechaFin.getTime() - today.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }
+
+  // Métodos de negocio
+  canBeModified(): boolean {
+    return this.estado === EstadoPlan.ACTIVO || this.estado === EstadoPlan.PAUSADO;
+  }
+
+  canBeCompleted(): boolean {
+    return this.estado === EstadoPlan.ACTIVO;
+  }
+
+  canBePaused(): boolean {
+    return this.estado === EstadoPlan.ACTIVO;
+  }
+
+  canBeResumed(): boolean {
+    return this.estado === EstadoPlan.PAUSADO;
+  }
+
+  // Métodos de actualización (inmutables)
+  complete(): PlanNutricional {
+    if (!this.canBeCompleted()) {
+      throw new Error('No se puede completar el plan en su estado actual');
+    }
+    
     return new PlanNutricional({
       ...this._attributes,
-      descripcion: nuevaDescripcion,
+      estado: EstadoPlan.COMPLETADO,
+      fechaFin: new Date(),
       fechaActualizacion: new Date()
     });
   }
 
-  updateEstado(nuevoEstado: EstadoPlan): PlanNutricional {
+  pause(): PlanNutricional {
+    if (!this.canBePaused()) {
+      throw new Error('No se puede pausar el plan en su estado actual');
+    }
+    
     return new PlanNutricional({
       ...this._attributes,
-      estado: nuevoEstado,
+      estado: EstadoPlan.PAUSADO,
       fechaActualizacion: new Date()
     });
   }
 
-  updateFechaFin(nuevaFechaFin: Date): PlanNutricional {
+  resume(): PlanNutricional {
+    if (!this.canBeResumed()) {
+      throw new Error('No se puede reanudar el plan en su estado actual');
+    }
+    
     return new PlanNutricional({
       ...this._attributes,
-      fechaFin: nuevaFechaFin,
+      estado: EstadoPlan.ACTIVO,
       fechaActualizacion: new Date()
     });
   }
 
+  cancel(): PlanNutricional {
+    return new PlanNutricional({
+      ...this._attributes,
+      estado: EstadoPlan.CANCELADO,
+      fechaFin: new Date(),
+      fechaActualizacion: new Date()
+    });
+  }
+
+  updateGoals(goals: {
+    caloriasObjetivo?: number;
+    proteinaObjetivo?: number;
+    carbohidratosObjetivo?: number;
+    grasasObjetivo?: number;
+  }): PlanNutricional {
+    if (!this.canBeModified()) {
+      throw new Error('No se pueden actualizar las metas en el estado actual del plan');
+    }
+
+    return new PlanNutricional({
+      ...this._attributes,
+      ...goals,
+      fechaActualizacion: new Date()
+    });
+  }
+
+  // Para obtener primitivos (útil para persistencia)
   toPrimitives(): PrimitivePlanNutricional {
     return { ...this._attributes };
   }
