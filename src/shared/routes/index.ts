@@ -6,6 +6,7 @@ import { authRoutes } from '../../contexts/auth/infrastructure/controllers/auth.
 import { productsRoutes } from '../../contexts/products/infrastructure/controllers/product.routes';
 import { nutritionPlansRoutes } from '../../contexts/nutrition-plans/infrastructure/controllers/nutrition-plans.routes';
 import { mcpRecommendationRoutes } from '../../contexts/nutrition-plans/infrastructure/controllers/mcp-recommendation.routes';
+import { advancedProductSearchRoutes } from '../../contexts/products/infrastructure/controllers/advanced-product-search.routes';
 
 const router = Router();
 
@@ -24,6 +25,7 @@ router.use('/auth', authRoutes);
 router.use('/inventory', productsRoutes);
 router.use('/nutrition-plans', nutritionPlansRoutes);
 router.use('/mcp-recommendations', mcpRecommendationRoutes);
+router.use('/products', advancedProductSearchRoutes);
 // router.use('/chat', chatRoutes);
 
 // Ruta de ejemplo para probar
