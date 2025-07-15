@@ -118,25 +118,55 @@ export class NutritionPlansController {
     try {
       logger.info('Getting plan nutricional', { 
         planId: req.params.id,
-        query: req.query
+        query: req.query,
+        originalUrl: req.originalUrl
       });
-
+  
+      // ✅ FUNCIÓN HELPER mejorada para parsear booleanos
+      const parseBoolean = (value: any): boolean | undefined => {
+        if (value === true || value === 'true') return true;
+        if (value === false || value === 'false') return false;
+        return undefined;
+      };
+  
+      // ✅ PARSEAR query params de múltiples formatos
       const dto = {
         planId: req.params.id,
-        includeRecomendaciones: req.query.includeRecomendaciones,
-        includeProductos: req.query.includeProductos,
-        includeCliente: req.query.includeCliente,
-        onlyPendingRecomendaciones: req.query.onlyPendingRecomendaciones
+        includeRecomendaciones: parseBoolean(
+          req.query.includeRecomendaciones || 
+          req.query['params[includeRecomendaciones]']
+        ),
+        includeProductos: parseBoolean(
+          req.query.includeProductos || 
+          req.query['params[includeProductos]']
+        ),
+        includeCliente: parseBoolean(
+          req.query.includeCliente || 
+          req.query['params[includeCliente]']
+        ),
+        onlyPendingRecomendaciones: parseBoolean(
+          req.query.onlyPendingRecomendaciones || 
+          req.query['params[onlyPendingRecomendaciones]']
+        )
       };
-
+  
+      logger.debug('DTO parseado para GET plan', { dto });
+  
       const result = await this.getPlanNutricionalUseCase.execute(dto as GetPlanNutricionalDto);
       
       logger.success('Plan nutricional retrieved successfully', { 
         planId: result.id,
         clienteId: result.clienteId,
-        recomendaciones: result.recomendaciones?.length || 0
+        tieneCliente: !!result.cliente,
+        recomendaciones: result.recomendaciones?.length || 0,
+        cliente: result.cliente ? {
+          id: result.cliente.id,
+          nombre: result.cliente.nombreCompleto,
+          peso: result.cliente.peso,
+          altura: result.cliente.altura
+        } : null
       });
-
+  
       const response = ResponseUtil.success(result, 'Plan nutricional obtenido exitosamente');
       res.status(200).json(response);
     } catch (error) {

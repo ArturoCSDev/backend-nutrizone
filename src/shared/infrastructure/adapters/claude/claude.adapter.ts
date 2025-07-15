@@ -149,7 +149,7 @@ Responde ÚNICAMENTE con el JSON válido, sin texto adicional antes o después.
 `;
   }
 
-  private static async callClaude(prompt: string): Promise<string> {
+  static async callClaude(prompt: string): Promise<string> {
     const requestBody: ClaudeRequest = {
       model: this.MODEL,
       max_tokens: this.MAX_TOKENS,

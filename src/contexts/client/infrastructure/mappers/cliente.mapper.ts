@@ -1,8 +1,12 @@
-import { Cliente as PrismaCliente } from '@prisma/client';
+import { Cliente as PrismaCliente, Usuario } from '@prisma/client';
 import { Cliente, PrimitiveCliente } from '../../domain/models/cliente.model';
 
+type PrismaClienteWithUsuario = PrismaCliente & {
+  cliente: Usuario;
+};
+
 export class ClienteMapper {
-  static toDomain(prismaCliente: PrismaCliente): Cliente {
+  static toDomain(prismaCliente: PrismaCliente | PrismaClienteWithUsuario): Cliente {
     const primitives: PrimitiveCliente = {
       id: prismaCliente.id,
       usuarioId: prismaCliente.usuarioId,
@@ -20,7 +24,13 @@ export class ClienteMapper {
       fechaActualizacion: prismaCliente.fechaActualizacion,
     };
 
-    return Cliente.fromPrimitives(primitives);
+    const clienteInstance = Cliente.fromPrimitives(primitives);
+    
+    if ('cliente' in prismaCliente && prismaCliente.cliente) {
+      (clienteInstance as any).usuario = prismaCliente.cliente;
+    }
+
+    return clienteInstance;
   }
 
   static toPrisma(cliente: Cliente): Omit<PrismaCliente, 'fechaCreacion' | 'fechaActualizacion'> {
@@ -42,7 +52,7 @@ export class ClienteMapper {
     };
   }
 
-  static toDomainList(prismaClientes: PrismaCliente[]): Cliente[] {
+  static toDomainList(prismaClientes: (PrismaCliente | PrismaClienteWithUsuario)[]): Cliente[] {
     return prismaClientes.map(this.toDomain);
   }
 }

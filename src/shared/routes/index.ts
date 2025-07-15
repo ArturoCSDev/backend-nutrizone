@@ -5,6 +5,7 @@ import { logger } from '../infrastructure/utils/logger.util';
 import { authRoutes } from '../../contexts/auth/infrastructure/controllers/auth.routes';
 import { productsRoutes } from '../../contexts/products/infrastructure/controllers/product.routes';
 import { nutritionPlansRoutes } from '../../contexts/nutrition-plans/infrastructure/controllers/nutrition-plans.routes';
+import { mcpRecommendationRoutes } from '../../contexts/nutrition-plans/infrastructure/controllers/mcp-recommendation.routes';
 
 const router = Router();
 
@@ -20,8 +21,9 @@ router.get('/health', (req, res) => {
 
 // Registrar rutas de contextos
 router.use('/auth', authRoutes);
-router.use('/products', productsRoutes);
+router.use('/inventory', productsRoutes);
 router.use('/nutrition-plans', nutritionPlansRoutes);
+router.use('/mcp-recommendations', mcpRecommendationRoutes);
 // router.use('/chat', chatRoutes);
 
 // Ruta de ejemplo para probar

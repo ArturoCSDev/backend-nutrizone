@@ -1,5 +1,6 @@
 import { RecomendacionNutricional as PrismaRecomendacionNutricional } from '@prisma/client';
 import { RecomendacionNutricional, PrimitiveRecomendacionNutricional } from '../../domain/models/recomendacion-nutricional.model';
+import { HorarioUtil } from '../../../../shared/infrastructure/utils/horario.util'; // NUEVO IMPORT
 
 export class RecomendacionNutricionalMapper {
   static toDomain(prismaRecomendacion: PrismaRecomendacionNutricional): RecomendacionNutricional {
@@ -30,6 +31,20 @@ export class RecomendacionNutricionalMapper {
   static toPrisma(recomendacion: RecomendacionNutricional): Omit<PrismaRecomendacionNutricional, 'fechaCreacion' | 'fechaRespuesta'> {
     const primitives = recomendacion.toPrimitives();
     
+    // NUEVO: Validar horarioEspecifico antes de enviarlo a Prisma
+    let horarioEspecifico = primitives.horarioEspecifico;
+    
+    if (horarioEspecifico) {
+      // Verificar si es una fecha válida
+      if (isNaN(horarioEspecifico.getTime())) {
+        console.warn('horarioEspecifico inválido detectado en mapper, estableciendo como null', {
+          recomendacionId: primitives.id,
+          horarioOriginal: horarioEspecifico
+        });
+        horarioEspecifico = null;
+      }
+    }
+    
     return {
       id: primitives.id,
       mensajeId: primitives.mensajeId,
@@ -39,7 +54,7 @@ export class RecomendacionNutricionalMapper {
       tituloRecomendacion: primitives.tituloRecomendacion,
       iconoProducto: primitives.iconoProducto,
       timingRecomendado: primitives.timingRecomendado,
-      horarioEspecifico: primitives.horarioEspecifico,
+      horarioEspecifico, // ACTUALIZADO: Usar la variable validada
       timingAdicional: primitives.timingAdicional,
       prioridad: primitives.prioridad,
       razonamiento: primitives.razonamiento,

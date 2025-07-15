@@ -11,6 +11,7 @@ import { NotFoundException } from '../../../../shared/core/exceptions/not-found.
 import { ConflictException } from '../../../../shared/core/exceptions/conflict.exception';
 import { ValidationException } from '../../../../shared/core/exceptions/validation.exception';
 import { logger } from '../../../../shared/infrastructure/utils/logger.util';
+import { HorarioUtil } from '../../../../shared/infrastructure/utils/horario.util'; // NUEVO IMPORT
 import { EstadoPlan, RespuestaUsuario } from '@prisma/client';
 
 export class CreatePlanNutricionalUseCase {
@@ -83,17 +84,29 @@ export class CreatePlanNutricionalUseCase {
     // 8. Guardar el plan
     const savedPlan = await this.planNutricionalRepository.save(planNutricional);
 
-    // 9. Crear las recomendaciones
-    const recomendaciones = planGenerado.recomendaciones.map(rec => 
-      RecomendacionNutricional.create({
-        mensajeId: null, // Sin mensaje ya que es generación directa
+    // 9. Crear las recomendaciones con validación robusta
+    const recomendaciones = planGenerado.recomendaciones.map(rec => {
+      // NUEVO: Usar HorarioUtil para parsear horarios de manera segura
+      const horarioEspecifico = HorarioUtil.parseHorarioEspecifico(rec.horarioEspecifico);
+      
+      // Log para debugging si hay problemas
+      if (rec.horarioEspecifico && !horarioEspecifico) {
+        logger.warn('Horario específico inválido detectado', {
+          recomendacion: rec.tituloRecomendacion,
+          horarioOriginal: rec.horarioEspecifico,
+          planId: savedPlan.id
+        });
+      }
+
+      return RecomendacionNutricional.create({
+        mensajeId: null,
         productoId: rec.productoId,
         tamanoId: rec.tamanoId || null,
         planId: savedPlan.id,
         tituloRecomendacion: rec.tituloRecomendacion,
         iconoProducto: rec.iconoProducto,
         timingRecomendado: rec.timingRecomendado,
-        horarioEspecifico: rec.horarioEspecifico ? new Date(`1970-01-01T${rec.horarioEspecifico}:00`) : null,
+        horarioEspecifico, // ACTUALIZADO: Usar la variable validada
         timingAdicional: rec.timingAdicional || null,
         prioridad: rec.prioridad,
         razonamiento: rec.razonamiento,
@@ -101,8 +114,8 @@ export class CreatePlanNutricionalUseCase {
         frecuencia: rec.frecuencia,
         respuestaUsuario: RespuestaUsuario.PENDIENTE,
         timingModificado: null,
-      })
-    );
+      });
+    });
 
     // 10. Guardar las recomendaciones
     const savedRecomendaciones = await this.recomendacionNutricionalRepository.saveMany(recomendaciones);
@@ -195,7 +208,7 @@ export class CreatePlanNutricionalUseCase {
         tituloRecomendacion: rec.tituloRecomendacion || '',
         iconoProducto: rec.iconoProducto || '🥤',
         timingRecomendado: rec.timingRecomendado,
-        horarioEspecifico: rec.horarioEspecifico?.toTimeString().slice(0, 5) || null,
+        horarioEspecifico: HorarioUtil.dateToHorarioString(rec.horarioEspecifico), // ACTUALIZADO: Usar HorarioUtil
         timingAdicional: rec.timingAdicional,
         prioridad: rec.prioridad,
         razonamiento: rec.razonamiento,

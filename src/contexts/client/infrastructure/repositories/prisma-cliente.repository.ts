@@ -7,6 +7,9 @@ export class PrismaClienteRepository extends ClienteRepository {
   async save(cliente: Cliente): Promise<Cliente> {
     const prismaCliente = await prisma.cliente.create({
       data: ClienteMapper.toPrisma(cliente),
+      include: {
+        cliente: true
+      }
     });
     return ClienteMapper.toDomain(prismaCliente);
   }
@@ -15,6 +18,9 @@ export class PrismaClienteRepository extends ClienteRepository {
     const prismaCliente = await prisma.cliente.update({
       where: { id: cliente.id },
       data: ClienteMapper.toPrisma(cliente),
+      include: {
+        cliente: true
+      }
     });
     return ClienteMapper.toDomain(prismaCliente);
   }
@@ -28,6 +34,9 @@ export class PrismaClienteRepository extends ClienteRepository {
   async findById(id: string): Promise<Cliente | null> {
     const prismaCliente = await prisma.cliente.findUnique({
       where: { id },
+      include: {
+        cliente: true
+      }
     });
     return prismaCliente ? ClienteMapper.toDomain(prismaCliente) : null;
   }
@@ -35,6 +44,9 @@ export class PrismaClienteRepository extends ClienteRepository {
   async findByIds(ids: string[]): Promise<Cliente[]> {
     const prismaClientes = await prisma.cliente.findMany({
       where: { id: { in: ids } },
+      include: {
+        cliente: true
+      }
     });
     return ClienteMapper.toDomainList(prismaClientes);
   }
@@ -42,6 +54,9 @@ export class PrismaClienteRepository extends ClienteRepository {
   async findMany(): Promise<Cliente[]> {
     const prismaClientes = await prisma.cliente.findMany({
       orderBy: { fechaCreacion: 'desc' },
+      include: {
+        cliente: true
+      }
     });
     return ClienteMapper.toDomainList(prismaClientes);
   }
@@ -49,6 +64,9 @@ export class PrismaClienteRepository extends ClienteRepository {
   async findByUsuarioId(usuarioId: string): Promise<Cliente | null> {
     const prismaCliente = await prisma.cliente.findUnique({
       where: { usuarioId },
+      include: {
+        cliente: true
+      }
     });
     return prismaCliente ? ClienteMapper.toDomain(prismaCliente) : null;
   }
