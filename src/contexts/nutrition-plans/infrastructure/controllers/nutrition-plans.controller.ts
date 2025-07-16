@@ -272,24 +272,51 @@ export class NutritionPlansController {
 
   getControlFisico = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      logger.info('Getting physical control', { 
-        controlId: req.params.id 
+      logger.info('Getting physical control with extended data', { 
+        controlId: req.params.id,
+        query: req.query
       });
-
-      const result = await this.getControlFisicoUseCase.execute({ id: req.params.id });
+  
+      // ✅ PARSEAR PARÁMETROS DE QUERY
+      const parseBoolean = (value: any): boolean | undefined => {
+        if (value === true || value === 'true') return true;
+        if (value === false || value === 'false') return false;
+        return undefined;
+      };
+  
+      // ✅ CONSTRUIR DTO CON PARÁMETROS EXTENDIDOS
+      const dto = {
+        id: req.params.id,
+        includeStatistics: true,
+        includeTrends: true,
+        includeComparisons: true,
+        statisticsDays: 90
+      };
+  
+      console.log('🔍 Controller DTO:', dto);
+  
+      const result = await this.getControlFisicoUseCase.execute(dto);
       
-      logger.success('Physical control retrieved successfully', { 
+      console.log('🔍 Controller result keys:', Object.keys(result));
+      console.log('🔍 Controller chartData exists:', !!result.chartData);
+      
+      logger.success('Physical control with extended data retrieved successfully', { 
         controlId: result.controlFisico.id,
         clienteId: result.controlFisico.clienteId,
-        fechaControl: result.controlFisico.fechaControl
+        fechaControl: result.controlFisico.fechaControl,
+        hasStatistics: !!result.statistics,
+        hasTrends: !!result.trends,
+        hasChartData: !!result.chartData,
+        hasCorrelations: !!result.correlations
       });
-
+  
       const response = ResponseUtil.success(result, 'Control físico obtenido exitosamente');
       res.status(200).json(response);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Failed to get physical control', { 
+      logger.error('Failed to get physical control with extended data', { 
         controlId: req.params.id,
+        query: req.query,
         error: errorMessage 
       });
       next(error);

@@ -103,4 +103,25 @@ export class PrismaControlFisicoRepository extends ControlFisicoRepository {
     });
     return ControlFisicoMapper.toDomainList(prismaControlesFisicos);
   }
+
+   async findByClienteIdWithDateRange(
+    clienteId: string, 
+    fechaInicio: Date, 
+    fechaFin: Date
+  ): Promise<ControlFisico[]> {
+    const prismaControlesFisicos = await prisma.controlFisico.findMany({
+      where: {
+        clienteId,
+        fechaControl: {
+          gte: fechaInicio,
+          lte: fechaFin
+        }
+      },
+      include: {
+        cliente: true,
+      },
+      orderBy: { fechaControl: 'desc' },
+    });
+    return ControlFisicoMapper.toDomainList(prismaControlesFisicos);
+  }
 }

@@ -12,4 +12,10 @@ export abstract class ControlFisicoRepository {
   abstract findByPlanId(planId: string): Promise<ControlFisico[]>;
   abstract findRecentByClienteId(clienteId: string, days: number): Promise<ControlFisico[]>;
   abstract findByDateRange(clienteId: string, startDate: Date, endDate: Date): Promise<ControlFisico[]>;
+
+  abstract findByClienteIdWithDateRange(
+    clienteId: string, 
+    fechaInicio: Date, 
+    fechaFin: Date
+  ): Promise<ControlFisico[]>;
 }
