@@ -23,7 +23,7 @@ export const config = {
   CLAUDE_MODEL: process.env.CLAUDE_MODEL || 'claude-sonnet-4-20250514',
   CLAUDE_MAX_TOKENS: Number(process.env.CLAUDE_MAX_TOKENS) || 4000,
   CLAUDE_TEMPERATURE: Number(process.env.CLAUDE_TEMPERATURE) || 0.7,
-  CLAUDE_TIMEOUT: Number(process.env.CLAUDE_TIMEOUT) || 30000, // 30 segundos
+  CLAUDE_TIMEOUT: Number(process.env.CLAUDE_TIMEOUT) || 60000, // 60 segundos
   
   // Helpers
   get isDevelopment(): boolean {
