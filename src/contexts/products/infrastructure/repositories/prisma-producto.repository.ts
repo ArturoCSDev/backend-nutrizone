@@ -290,4 +290,8 @@ export class PrismaProductoRepository implements ProductoRepository {
 
     return count > 0;
   }
+
+  async count(): Promise<number> {
+    return await this.prisma.producto.count();
+  }
 }

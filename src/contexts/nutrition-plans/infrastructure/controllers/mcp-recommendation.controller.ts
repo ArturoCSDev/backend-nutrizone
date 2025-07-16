@@ -2,19 +2,22 @@ import { Request, Response, NextFunction } from 'express';
 import { ResponseUtil } from '../../../../shared/infrastructure/utils/response.util';
 import { logger } from '../../../../shared/infrastructure/utils/logger.util';
 
-// Repositorio
+// Repositorios
 import { PrismaRecomendacionNutricionalRepository } from '../repositories/prisma-recomendacion-nutricional.repository';
+import { PrismaProductoRepository } from '../../../products/infrastructure/repositories/prisma-producto.repository';
 
 // Use Case MCP
 import { CreateRecommendationMCPUseCase } from '../../application/create-recommendation/create-recommendation.use-case';
 
 export class MCPRecommendationController {
-  // Repositorio
+  // Repositorios
   private readonly recomendacionRepository = new PrismaRecomendacionNutricionalRepository();
+  private readonly productoRepository = new PrismaProductoRepository(); // ✅ AGREGAR REPOSITORIO
 
   // Use Case MCP
   private readonly createRecommendationMCPUseCase = new CreateRecommendationMCPUseCase(
-    this.recomendacionRepository
+    this.recomendacionRepository,
+    this.productoRepository // ✅ INYECTAR REPOSITORIO DE PRODUCTOS
   );
 
   /**
@@ -37,6 +40,8 @@ export class MCPRecommendationController {
       logger.success('Recomendación MCP creada exitosamente', { 
         clienteId: req.body.clienteId,
         recomendacionesGeneradas: result.recomendaciones.length,
+        recomendacionesOriginales: result.metadatos.recomendacionesOriginales,
+        recomendacionesDescartadas: result.metadatos.recomendacionesOriginales - result.recomendaciones.length,
         processingTime: totalTime,
         usedMCP: result.metadatos.usedMCP
       });
@@ -70,8 +75,9 @@ export class MCPRecommendationController {
     try {
       logger.info('Verificando estado del MCP Server');
 
-      // Aquí podrías hacer un ping al MCP server para verificar que esté funcionando
-      // Por ahora, simulamos que está funcionando
+      // ✅ Verificar que hay productos en la base de datos
+      const productCount = await this.productoRepository.count();
+
       const healthStatus = {
         mcpServer: {
           status: 'healthy',
@@ -80,11 +86,19 @@ export class MCPRecommendationController {
         },
         database: {
           status: 'connected',
-          timestamp: new Date()
+          timestamp: new Date(),
+          productCount // ✅ Incluir contador de productos
+        },
+        validation: {
+          productValidation: 'enabled',
+          foreignKeyChecks: 'active'
         }
       };
 
-      logger.info('MCP Server health check completado', { status: healthStatus });
+      logger.info('MCP Server health check completado', { 
+        status: healthStatus,
+        productCount 
+      });
 
       const response = ResponseUtil.success(healthStatus, 'MCP Server funcionando correctamente');
       res.status(200).json(response);

@@ -197,7 +197,7 @@ Basándote en estos datos obtenidos de las herramientas MCP, genera las recomend
     // ✅ Fallback si todo falla
     return {
       recomendaciones: [
-        {
+        { 
           productoId: "fallback-producto-1",
           tituloRecomendacion: "🎯 Recomendación de Emergencia",
           iconoProducto: "🥤",
