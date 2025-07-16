@@ -12,7 +12,7 @@ const mcpRecommendationController = new MCPRecommendationController();
  * @access Private
  * @body {CreateRecommendationDto}
  */
-router.post('/', 
+router.post('/recommendations', 
   // authMiddleware, // Descomenta cuando tengas el middleware
   validationMiddleware(CreateRecommendationDto),
   mcpRecommendationController.createRecommendationWithMCP
